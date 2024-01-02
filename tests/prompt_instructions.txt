@@ -1,0 +1,43 @@
+
+Class method writing:
+
+error_handling.py defines the ErrorHandle class. I will ask you to write additional methods for this class using the following background instructions
+
+1. In my prompts, variable names preceded by "." are class attributes
+2. When prompted, add a docstring in this format
+``` """ <docstring text requested JDL 1/2/24 """```
+3. Convert my detailed instructions to shorter, plain-English comments in the code
+
+Here is the ErrorHandle.__init__() function that initializes attributes and gives their descriptions
+
+Please write the ErrorHandle.GetBaseErrCode method based on these actions: <paste Code plan actions>
+
+
+Test writing:
+
+For testing error_handling.py, use the following pytest fixtures:
+```
+@pytest.fixture
+def errs():
+    return ErrorHandle(libs_dir, IsHandle=True)
+
+@pytest.fixture
+def df_errs_test():
+    data = """
+    iCode,Class,Locn,Msg_String
+    100,DemoClass,check1,Base
+    101,DemoClass,check1,A check1 error occurred
+    105,DemoClass,check_no_base,No base row for Locn
+    """
+    return pd.read_csv(StringIO(data), skipinitialspace=True)
+```
+
+test_GetBaseErrCode:
+Write a test_GetBaseErrCode() test that uses these fixtures to check the action of ErrorHandle.GetBaseErrCode for the cases where the Base row is found in .df_errs and the case where it is not found
+
+test_SetReportErrCode
+Using the Pytest fixtures, write a test of ErrorHandle.SetReportErrCode() that checks three cases:
+
+Base error code found in .df_errs for errs.Locn= 'check1' and .iCodeLocal=1
+Base error code found in .df_errs but .iCodeLocal corresponds to a .iCodeReport value of 2 that is not found in .df_errs
+Base error code not found in .df_errs for ers.Locn = 'check_no_base'

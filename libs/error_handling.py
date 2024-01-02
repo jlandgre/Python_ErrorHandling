@@ -1,57 +1,71 @@
 import pandas as pd
-import os
 
+#Global code to flag Base error code not found in .df_errs
 iErrNotFound = 10000
 
 class ErrorHandle:
-    def __init__(self, libs_dir, IsHandle=True):
+    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True):
         self.IsHandle = IsHandle
 
         self.Locn = ""  # Function where error occurred
         self.iCodeLocal = 0 # Local, integer error code
         self.iCodeBase = 0  # Base error code for .Locn lookup
         self.iCodeReport = 0 # Lookup code for error message (Base + Local)
-        self.ErrParam = None
-        self.ErrMsg = ''
-        #self.IsUserFacing = False
-        self.IsNewErr = True
-        #self.IsDriver = False
-        self.IsErr = False
+        self.ErrParam = None # Optional param to append to error message
+        self.ErrHeader = ErrMsgHeader # Error message header string
+        self.ErrMsg = '' # Error message string
+        self.IsNewErr = True # Flag for new error
+        self.IsErr = False # Flag if error occurred
+
+        #Import error codes from Excel file
         self.df_errs = pd.read_excel(libs_dir + 'ErrorCodes.xlsx', sheet_name='Errors_')
 
-    def is_fail(self, is_error, i_code, err_param=None):
+        self.IsWarning = False  # Flag for warning (non-fatal error)
+        self.IsPrint = True  # Flag printing from ReportError
+        self.IsLog = False  # Flag logging from ReportError
+        self.Msgs_Accum = ''  # String with accumulated error messages
+        
+    """
+    =========================================================================
+    RecordErr Procedure - record/report an error or warning
+    =========================================================================
+    """
+    def RecordErr(self):
         """
-        Boolean function to check fail/pass condition (evals True if fail)
-        Set class parameters if fail
+        Procedure to record/report an error or warning
         JDL 1/2/24
         """
-        if not is_error: return False
+        self.GetBaseErrCode()
+        self.SetReportErrCode()
+        self.AppendErrMsg()
+        self.ReportError()
+        if self.IsWarning: self.ResetWarning()
 
-        self.IsErr = True
-        self.iCodeLocal = i_code
-        if err_param is not None: self.ErrParam = err_param
-        return True
-    
-    def SetErrCodes(self):
+    def GetBaseErrCode(self):
         """
-        Look up Base df_errs code for .Locn and set iCodeReport
+        Look up Base .df_errs code for .Locn
         JDL 1/2/24
         """
         self.iCodeBase = iErrNotFound
 
-        # Check if self.Locn rows are found in the dataframe
-        if self.Locn not in self.df_errs['Locn'].values: return False
+        # Exit if self.Locn not  .df_errs Locn column values
+        if self.Locn not in self.df_errs['Locn'].values: return
 
         # Find the Base row for self.Locn
         fil = (self.df_errs['Locn'] == self.Locn) & (self.df_errs['Msg_String'] == 'Base')
         base_row = self.df_errs.loc[fil]
 
-        # Assign self.iCodeBase to iCode from that row
-        if not base_row.empty:
-            self.iCodeBase = base_row['iCode'].values[0]
+        # Assign .iCodeBase to iCode from Locn + Msg_String match row
+        if not base_row.empty: self.iCodeBase = base_row['iCode'].values[0]
+
+    def SetReportErrCode(self):
+        """
+        Sets the report error code as the sum of base and local error codes.
+        JDL 1/2/24
+        """
+        # If no iCodeBase, leave iCodeReport as default value of 0
+        if self.iCodeBase != iErrNotFound:
             self.iCodeReport = self.iCodeBase + self.iCodeLocal
-            return True
-        return False
 
     def AppendErrMsg(self):
         """
@@ -79,9 +93,48 @@ class ErrorHandle:
         # Append ErrParam if specified when ReportErr called
         if self.ErrParam is not None: self.ErrMsg = self.ErrMsg + ': ' & self.ErrParam
 
-    def RecordErr(self):
-    
-        #Log error location; lookup base code and get iCodeReport for message lookup
-        if self.IsNewErr:
-            if self.GetBaseErrCode():
-                self.iCodeReport = self.iCodeBase + self.iCodeLocal
+    def ReportError(self):
+        """
+        Reports an error based on the ErrMsg attribute.
+        JDL 1/2/24
+        """
+        # Exit if .ErrMsg is empty
+        if self.ErrMsg == '': return
+
+        # Append .ErrMsg to .ErrMsgsAccum
+        if self.Msgs_Accum: self.Msgs_Accum += '\n'
+        self.Msgs_Accum += self.ErrMsg
+
+        # Print the error message 
+        if self.IsPrint:
+            if (len(self.ErrHeader)>0) & (not self.IsWarning): print(self.ErrHeader)
+            print(self.ErrMsg)
+
+    def ResetWarning(self):
+        """
+        Reset attributes to default values after reporting non-fatal/warning
+        JDL 1/2/24
+        """
+        self.iCodeLocal = 0
+        self.iCodeBase = 0
+        self.iCodeReport = 0
+        self.ErrMsg = ''
+        self.ErrParam = None
+    """
+    =========================================================================
+    ErrorHandle utility functions
+    =========================================================================
+    """
+    def is_fail(self, is_error, i_code, err_param=None):
+        """
+        Boolean check condition; return True and  set class params if fail
+        JDL 1/2/24
+        """
+        #Check boolean condition specified from calling function
+        if not is_error: return False
+
+        #If fail, set class parameters
+        self.IsErr = True
+        self.iCodeLocal = i_code
+        if err_param is not None: self.ErrParam = err_param
+        return True
