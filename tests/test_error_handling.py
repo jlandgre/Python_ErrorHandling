@@ -1,4 +1,4 @@
-#Version 1/2/24
+#Version 1/3/24
 #python -m pytest test_error_handling.py -v -s
 #2345678901234567890123456789012345678901234567890123456789012345678901234567890
 
@@ -195,7 +195,7 @@ def test_is_fail(errs):
     result = errs.is_fail(True, 1, 'test_param')
     assert result == True, 'is_fail should return True when is_error is True'
     assert errs.iCodeLocal == 1, 'iCodeLocal should be set to 1'
-    assert errs.ErrParam == 'test_param', 'ErrParam should be set to 'test_param''
+    assert errs.ErrParam == 'test_param', 'ErrParam should be set to test_param'
 
     #Reinitialize errs and test with is_error = False
     errs = ErrorHandle(libs_dir, IsHandle=True)

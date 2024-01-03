@@ -1,7 +1,9 @@
+#Version 1/3/24
 import pandas as pd
 
 #Global code to flag Base error code not found in .df_errs
 iErrNotFound = 10000
+
 
 class ErrorHandle:
     def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True):
@@ -91,7 +93,7 @@ class ErrorHandle:
         self.ErrMsg = self.ErrMsg + msgNew
 
         # Append ErrParam if specified when ReportErr called
-        if self.ErrParam is not None: self.ErrMsg = self.ErrMsg + ': ' & self.ErrParam
+        if self.ErrParam is not None: self.ErrMsg = self.ErrMsg + ': ' + self.ErrParam
 
     def ReportError(self):
         """
@@ -113,13 +115,14 @@ class ErrorHandle:
     def ResetWarning(self):
         """
         Reset attributes to default values after reporting non-fatal/warning
-        JDL 1/2/24
+        JDL 1/3/24
         """
         self.iCodeLocal = 0
         self.iCodeBase = 0
         self.iCodeReport = 0
         self.ErrMsg = ''
         self.ErrParam = None
+        self.IsErr = False
     """
     =========================================================================
     ErrorHandle utility functions
