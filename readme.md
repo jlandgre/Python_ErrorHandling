@@ -1,4 +1,4 @@
-This project contains code libraries for user messaging and for performing prechecks on inputs for Python projects. 
+This project contains Python libraries for user messaging and for performing prechecks on inputs for Python projects. 
 
 error_handling.py and its ErrorHandle class manage reporting errors and warnings indexed by a local, integer code and a base error code for each function in a code project. A table of codes and corresponding message strings is stored in the ErrorCodes.xlsx file making it easy to add new messages or edit the existing ones. ErrorHandle is loosely based on this [VBA_ErrorHandling project](https://github.com/jlandgre/VBA_ErrorHandling) that has been used successfully in VBA consulting projects.
 
