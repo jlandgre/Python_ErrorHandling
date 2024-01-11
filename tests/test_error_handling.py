@@ -12,7 +12,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 libs_dir = os.path.dirname(current_dir) +  os.sep + 'libs' + os.sep
 if not libs_dir in sys.path: sys.path.append(libs_dir)
 from error_handling import ErrorHandle
-from demo import DemoClass
 
 """
 =========================================================================
@@ -37,10 +36,6 @@ def df_errs_test():
     111,DemoClass,check3,Warning: check3
     """
     return pd.read_csv(StringIO(data), skipinitialspace=True)
-
-@pytest.fixture
-def demo():
-    return DemoClass()
 
 """
 =========================================================================

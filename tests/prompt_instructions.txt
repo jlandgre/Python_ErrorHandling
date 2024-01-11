@@ -4,7 +4,7 @@ Class method writing:
 error_handling.py defines the ErrorHandle class. I will ask you to write additional methods for this class using the following background instructions
 
 1. In my prompts, variable names preceded by "." are class attributes
-2. When prompted, add a docstring in this format
+2. Add a docstring to the methods in this format
 ``` """ <docstring text requested JDL 1/2/24 """```
 3. Convert my detailed instructions to shorter, plain-English comments in the code
 
@@ -41,3 +41,7 @@ Using the Pytest fixtures, write a test of ErrorHandle.SetReportErrCode() that c
 Base error code found in .df_errs for errs.Locn= 'check1' and .iCodeLocal=1
 Base error code found in .df_errs but .iCodeLocal corresponds to a .iCodeReport value of 2 that is not found in .df_errs
 Base error code not found in .df_errs for ers.Locn = 'check_no_base'
+
+
+write a CheckExcelFiles method that tries opening an Excel file and uses errs.is_fail if the file cannot be opened
+

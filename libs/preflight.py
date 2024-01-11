@@ -25,6 +25,9 @@ class CheckExcelFiles:
         Procedure to check specified Excel files and sheets
         JDL 1/4/24
         """
+        # Set location for looking up error messages
+        self.errs.Locn = current_fn()
+
         for idx in range(len(self.lst_files)):
             self.IsWbErr = False
 

@@ -52,6 +52,9 @@ would typically be imported from ErrorCodes.xlsx. It would reside in
 the libs subfolder with error_handling.py and preflight.py files.
 =========================================================================
 """
+
+IsPrint = True
+
 def test_CheckFilesProcedure1(check_files):
     """
     Test the CheckFilesProcedure method of the CheckExcelFiles class
@@ -61,6 +64,8 @@ def test_CheckFilesProcedure1(check_files):
     check_files.CheckFilesProcedure()
     assert check_files.IsWbErr == False
     assert len(check_files.errs.Msgs_Accum) == 0
+
+    if IsPrint & (not check_files.IsWbErr): print('\n\nNo errors\n')
 
 def test_CheckFilesProcedure2(check_files):
     """
@@ -72,6 +77,7 @@ def test_CheckFilesProcedure2(check_files):
     assert check_files.IsWbErr == True
     assert check_files.errs.Msgs_Accum[0:27] == 'ERROR: Input file not found'
 
+    if IsPrint: print_msgs_accum(check_files)
 
 def test_CheckFilesProcedure3(check_files):
     """
@@ -83,6 +89,8 @@ def test_CheckFilesProcedure3(check_files):
     assert check_files.IsWbErr == True
     assert check_files.errs.Msgs_Accum[0:27] == 'ERROR: Input file not a val'
 
+    if IsPrint: print_msgs_accum(check_files)
+
 def test_CheckFilesProcedure4(check_files):
     """
     Test the CheckFilesProcedure method of the CheckExcelFiles class
@@ -93,9 +101,11 @@ def test_CheckFilesProcedure4(check_files):
     assert check_files.IsWbErr == True
     assert check_files.errs.Msgs_Accum[0:32] == 'ERROR: Required input file sheet'
 
-    # Print accumulated error messages
-    #msgs = check_files.errs.Msgs_Accum
-    #if len(msgs) > 0: print('\n\n', msgs + '\n')
+    if IsPrint: print_msgs_accum(check_files)
+
+def print_msgs_accum(check_files):
+    """Print accumulated error messages"""
+    print('\n\n', check_files.errs.Msgs_Accum + '\n')
 
 def test_ExcelFileExists1(check_files):
     """
