@@ -12,7 +12,8 @@ This function from preflight.py gives an example of trapping an error if a speci
 ```
 def ExcelFileExists(self, idx):
         """
-        Check if each Excel file exists and if each sheet exists in the file.
+        Check if an Excel file exists based on specified list index for list 
+        of files to check (iteration over list in calling CheckFilesProcedure)
         JDL 1/4/24
         """
         fpath = self.lst_files[idx]

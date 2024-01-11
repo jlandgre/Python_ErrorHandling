@@ -40,7 +40,8 @@ class CheckExcelFiles:
 
     def ExcelFileExists(self, idx):
         """
-        Check if each Excel file exists and if each sheet exists in the file.
+        Check if an Excel file exists based on specified list index for list 
+        of files to check (iteration over list in calling CheckFilesProcedure)
         JDL 1/4/24
         """
         fpath = self.lst_files[idx]
@@ -52,7 +53,7 @@ class CheckExcelFiles:
 
     def ExcelFileOpens(self, idx):
         """
-        Check if each Excel file exists and if each sheet exists in the file.
+        Check if file is a valid Excel file based on ability to open
         JDL 1/4/24
         """
         fpath = self.lst_files[idx]
