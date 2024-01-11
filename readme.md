@@ -8,7 +8,11 @@ The tests/test_error_handling.py and tests/test_preflight.py include examples of
 
 A key goal of this project is to make it possible for user messages to be a configuration (e.g. in ErrorCodes.xlsx) instead of needing to be hard coded. A related objective is to minimize extra code and clutter related to trapping and reporting errors. Another objective is to make it possible to trap errors in nested functions where it may be desirable to return up the chain from where the error was detected --allowing an orderly shutdown of in-progress proceedings before reporting the error to the user and halting execution.
 
-This function from preflight.py gives an example of trapping an error if a specified file doesn't exist. Here, self.errs is an instance of the ErrorHandle class --passed to the function as an attribute of the preflight.CheckExcelFiles class. This code relies on ErrorHandle.Locn having already been set in a calling function to specify how to look up the appropriate message from ErrorCodes. The ErrorHandle.is_fail() function checks the specified, Boolean argument and sets a local code "1" and an optional string parameter to report
+This function from preflight.py gives an example of trapping an error if a specified file doesn't exist. Here, self.errs is an instance of the ErrorHandle class --passed to the function as an attribute of the preflight.CheckExcelFiles class. This code relies on ErrorHandle.Locn having already been set in a calling function to specify how to look up the appropriate message from ErrorCodes. 
+
+The ErrorHandle.is_fail() function checks the specified, Boolean argument and sets a local code, 1, and an optional string parameter to report with the message listed in ErrorCodes.xlsx. The .RecordErr() method looks up a base error code for ErrorHandle.Locn and adds the local, 1, code to the base to look up the message to report. This lookup approach means that the local error codes within the code can be simple integers --counting up from 1 rather than needing to be globally unique within the project. That makes administration easier.
+
+Using .isFail() minimizes the number of code lines needed to check for an error. In the example, there is a multiline if block, but, if the error condition will be reported later at the top of a stack of nested functions, the check can be single line and simply return if an error is detected. In this case, the .is_fail() call can conditionally return to the calling function.
 ```
 def ExcelFileExists(self, idx):
         """
@@ -24,7 +28,7 @@ def ExcelFileExists(self, idx):
         return True
 ```
 
-If an input file is mis-specified and the .is_fail check returns True,  ErrorHandle.RecordErr() method will report the following message and either halt execution or continue depending on the value of an ErrorHandle.IswWarning Boolean flag.
+For the above example, if the .is_fail() Boolean check (first argument) returns True, the ErrorHandle.RecordErr() method will report the following message and either halt execution or continue depending on the value of an ErrorHandle.IswWarning Boolean flag.
 ```
 ERROR: Specified file not found: 
  path_tofile\filename.ext
