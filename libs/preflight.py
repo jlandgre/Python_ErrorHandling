@@ -1,9 +1,8 @@
-#Version 1/4/24
+#Version 1/15/24
 import pandas as pd
 import os
 from openpyxl import load_workbook
 import util
-
 
 class CheckDataFrame:
     def __init__(self, df, errs):
@@ -16,10 +15,9 @@ class CheckDataFrame:
 
     def NoDuplicateCols(self):
         """
-        Check if the DataFrame self.df does not have duplicate column names
+        Check if the DataFrame self.df does not have duplicate column names (True if so)
         JDL 1/11/24
         """
-        # Get the DataFrame columns
         cols = self.df.columns
         
         # Check if there are duplicate column names
@@ -57,7 +55,7 @@ class CheckDataFrame:
     
     def ColAllPopulated(self, col_name):
         """
-        Check if all values in a specified column are non-null
+        Check if all values in a specified column are non-null (True if so)
         JDL 1/11/24
         """
         # Check if column contains any null values and report error if so
@@ -67,7 +65,7 @@ class CheckDataFrame:
     
     def ColAllNumeric(self, col_name):
         """
-        Check if values in a specified column are non-blank and numeric
+        Check if values in a specified column are non-blank and numeric (True if so)
         JDL 1/11/24
         """
         # Convert the column to numeric, coercing non-numeric values to NaN
@@ -82,7 +80,7 @@ class CheckDataFrame:
     
     def ContainsRequiredCols(self, cols_req):
         """
-        Check if .df contains a specified list of column names
+        Check if .df contains a specified list of column names (True if so)
         JDL 1/11/24
         """
         #Check df has all required columns
@@ -94,7 +92,7 @@ class CheckDataFrame:
 
     def ColNonBlank(self, col_name):
         """
-        Check if specified column contains any non-blank values
+        Check if specified column contains any non-blank values (True if so)
         JDL 1/11/24
         """
         #Check column contains at least one non-blank value
@@ -105,7 +103,7 @@ class CheckDataFrame:
         return True
 
 class CheckExcelFiles:
-    def __init__(self, lst_files, lst_shts, errs):
+    def __init__(self, lst_files, lst_shts, errs, IsErrsAsWarnings=True):
         """
         Initialize CheckExcelFiles with a list of file paths and a list of sheets.
         JDL 1/2/24
@@ -118,7 +116,7 @@ class CheckExcelFiles:
 
         # ErrorHandle instance and atts - Errors are treated as non-fatal warnings
         self.errs = errs
-        self.errs.IsWarning = True
+        self.errs.IsWarning = IsErrsAsWarnings
         self.errs.IsPrint = False
 
     def CheckFilesProcedure(self):
@@ -130,7 +128,6 @@ class CheckExcelFiles:
         self.errs.Locn = util.current_fn()
 
         for idx in range(len(self.lst_files)):
-            self.IsWbErr = False
 
             # Check that file exists and can be opened; set self.wb object
             if not self.ExcelFileExists(idx): continue
@@ -167,6 +164,11 @@ class CheckExcelFiles:
         #If error, use .is_fail to set params including Locn of calling function
         except Exception as e:
             self.IsWbErr = True
+
+            #Shorten the directory path for printing
+            fpath = util.ck_for_shorten_path(self.lst_files[idx], 3)
+
+            #Record the error (add to self.errs.Msgs_Accum)
             self.errs.is_fail(True, 2, self.errs.Locn, '\n ' + fpath + '\n')
             self.errs.RecordErr()
             return False
@@ -186,6 +188,9 @@ class CheckExcelFiles:
         """
         #Set the path and errParam string for current file and sheet
         fpath = self.lst_files[idx]
+
+        #Set errParam string for current file and sheet (Shorten path for printing)
+        fpath = util.ck_for_shorten_path(self.lst_files[idx], 3)
         errParam = '\n Missing: ' + sheet_name + ' in ' + fpath + '\n'
 
         #Check if sheet exists in self.wb

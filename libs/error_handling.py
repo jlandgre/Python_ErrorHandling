@@ -9,7 +9,7 @@ class ErrorHandle:
     def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True):
         self.IsHandle = IsHandle
 
-        self.Locn = ""  # Function where error occurred
+        self.Locn = ''  # Function where error occurred
         self.iCodeLocal = 0 # Local, integer error code
         self.iCodeBase = 0  # Base error code for .Locn lookup
         self.iCodeReport = 0 # Lookup code for error message (Base + Local)
