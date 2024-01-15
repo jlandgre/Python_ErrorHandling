@@ -4,6 +4,7 @@
 
 import sys, os
 import pandas as pd
+import numpy as np
 from io import StringIO
 import pytest
 
@@ -14,6 +15,7 @@ if not libs_dir in sys.path: sys.path.append(libs_dir)
 import preflight
 from preflight import CheckExcelFiles
 from error_handling import ErrorHandle
+from preflight import CheckDataFrame
 """
 =========================================================================
 Fixtures and global variables for testing
@@ -32,6 +34,20 @@ def df_errs_test():
     101,CheckExcelFiles,CheckFilesProcedure,ERROR: Input file not found
     102,CheckExcelFiles,CheckFilesProcedure,ERROR: Input file not a valid Excel file
     103,CheckExcelFiles,CheckFilesProcedure,ERROR: Required input file sheet not found
+    110,CheckDataFrame,ColNonBlank,Base
+    111,CheckDataFrame,ColNonBlank,ERROR: Required column is blank
+    115,CheckDataFrame,ContainsRequiredCols,Base
+    116,CheckDataFrame,ContainsRequiredCols,ERROR: Required column not present
+    120,CheckDataFrame,ColAllNumeric,Base
+    121,CheckDataFrame,ColAllNumeric,ERROR: Column must contain only non-blank numeric values
+    125,CheckDataFrame,ColAllPopulated,Base
+    126,CheckDataFrame,ColAllPopulated,ERROR: All column values must be non-blank
+    130,CheckDataFrame,IndexContainsListVals,Base
+    131,CheckDataFrame,IndexContainsListVals,ERROR: Index must contain all specified values
+    135,CheckDataFrame,ColumnsContainListVals,Base
+    136,CheckDataFrame,ColumnsContainListVals,ERROR: Columns must contain all specified values
+    140,CheckDataFrame,NoDuplicateCols,Base
+    141,CheckDataFrame,NoDuplicateCols,ERROR: DataFrame cannot have duplicate columns
     """
     return pd.read_csv(StringIO(data), skipinitialspace=True)
 
@@ -41,6 +57,248 @@ def check_files(errs, df_errs_test):
     errs.Locn = 'CheckFilesProcedure'
     lst_files, lst_shts = ['../tests/test_mockup.xlsx'], [['']]
     return CheckExcelFiles(lst_files, lst_shts, errs)
+
+@pytest.fixture
+def df_test1():
+    data = """
+    Row_Name,Select,id_index,Color
+    first_row,,1001,green
+    second_row,x,1002,blue
+    third_row,,1003,green
+    fourth_row,x,1004,pink
+    """
+    df = pd.read_csv(StringIO(data.strip()), skipinitialspace=True)
+
+    #Convert id_index to numeric and set as index
+    df['id_index'] = df['id_index'].astype(int)
+    df.set_index('Row_Name', inplace=True)
+    return df
+
+@pytest.fixture
+def df_test2():
+    data = """
+    id_string,1002,1003,1004
+    1002,0.02,0.03,0.04
+    1003,0.05,0.06,0.07
+    1004,0.08,0.09,0.1
+    """
+    df = pd.read_csv(StringIO(data.strip()), skipinitialspace=True)
+    
+    #Convert to numeric column names and id_string values
+    df.rename(columns={col: int(col) for col in df.columns[1:]}, inplace=True)
+    df['id_string'] = df['id_string'].astype(int)
+
+    #Convert 1002 to 1004 column values to float
+    for col in df.columns[1:]:
+        df[col] = df[col].astype(float)
+
+    df['id_string'] = df['id_string'].astype(int)
+    df.set_index('id_string', inplace=True)
+    return df
+
+@pytest.fixture
+def check_df1(errs, df_errs_test, df_test1):
+    """
+    Instance CheckDataFrame class with df_test1; use df_errs_test as error codes
+    """
+    errs.df_errs = df_errs_test
+    return CheckDataFrame(df_test1, errs)
+
+@pytest.fixture
+def check_df2(errs, df_errs_test, df_test2):
+    """
+    Instance CheckDataFrame class with df_test2; use df_errs_test as error codes
+    """
+    errs.df_errs = df_errs_test
+    return CheckDataFrame(df_test2, errs)
+
+"""
+=========================================================================
+Tests of CheckDataFrame class methods
+
+These tests use mockup DataFrames for various tests of dataframes
+=========================================================================
+"""
+
+def test_CheckDataFrame_NoDuplicateCols(check_df2, capfd):
+    """
+    Check if the DataFrame self.df does not have duplicate column names
+    JDL 1/11/24
+    """
+    # Test a case where there are no duplicate columns
+    assert check_df2.NoDuplicateCols() == True
+
+    # Modify check_df2.df to replace column 1004 with 1003 to create a duplicate
+    check_df2.df.rename(columns={1004: 1003}, inplace=True)
+
+    # Reset errs to initialized condition and Test a case where there are duplicate columns
+    check_df2.errs.ResetWarning()
+    assert check_df2.NoDuplicateCols() == False
+    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: DataFrame cannot have duplicate columns: \nDuplicate columns: 1003\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColumnsContainListVals(check_df2, capfd):
+    """
+    Check if the DataFrame columns contain a specified list of values
+    JDL 1/11/24
+    """
+    # Test a list of values that are all in the columns
+    assert check_df2.ColumnsContainListVals([1002, 1003]) == True
+
+    # Reset errs to initialized condition and Test a list of values that are not all in the columns
+    check_df2.errs.ResetWarning()
+    assert check_df2.ColumnsContainListVals([1002, 1003, 1005]) == False
+    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: Columns must contain all specified values: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_IndexContainsListVals(check_df2, capfd):
+    """
+    Check if the DataFrame index contains a specified list of values
+    JDL 1/11/24
+    """
+    # Test a list of values that are all in the index
+    assert check_df2.IndexContainsListVals([1002, 1003]) == True
+
+    # Reset errs to initialized condition and test list of values that are not all in the index
+    check_df2.errs.ResetWarning()
+    assert check_df2.IndexContainsListVals([1002, 1003, 1005]) == False
+    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: Index must contain all specified values: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+    
+def test_CheckDataFrame_ColAllPopulated(check_df1, capfd):
+    """
+    Check if all values in a specified column are non-null
+    JDL 1/11/24
+    """
+    # Test a column that contains only non-null values
+    assert check_df1.ColAllPopulated('id_index') == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    check_df1.errs.ResetWarning()
+
+    # Test the Select column which contains blanks
+    assert check_df1.ColAllPopulated('Select') == False
+    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: All column values must be non-blank: Select\n"
+    check_printout(exp, capfd)
+    
+
+def test_CheckDataFrame_ColAllNumeric(check_df1, capfd):
+    """
+    Check if values in a specified column are non-blank and numeric
+    JDL 1/11/24
+    """
+
+    # Test a column that contains only numeric values
+    assert check_df1.ColAllNumeric('id_index') == True
+
+    # Reset errs to initialized condition and Change a value to a string
+    check_df1.errs.ResetWarning()
+    check_df1.df.loc['first_row', 'id_index'] = 'xyz'
+
+    # Test the column again
+    assert check_df1.ColAllNumeric('id_index') == False
+    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Column must contain only non-blank numeric values: id_index\n"
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ContainsRequiredCols(check_df1, capfd):
+    """
+    Check if .df contains a specified list of column names
+    JDL 1/11/24
+    """
+    # Test a list of columns that are in the DataFrame
+    lst = list(check_df1.df.columns)
+    assert check_df1.ContainsRequiredCols(lst) == True
+
+    # Reset errs to initialized condition
+    check_df1.errs.ResetWarning()
+
+    # Test a list of columns where at least one is not in the DataFrame
+    lst = lst + ['non_existent_column']
+    assert check_df1.ContainsRequiredCols(lst) == False
+    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Required column not present: non_existent_column\n"
+    check_printout(exp, capfd)
+
+    
+def test_CheckDataFrame_ColNonBlank(check_df1, capfd):
+    """
+    Test that ColNonBlank checks if a specified column contains any non-blank values
+    JDL 1/11/24
+    """
+    # Test a column that contains non-blank values
+    assert check_df1.ColNonBlank('Select') == True
+
+    # Reset errs to initialized condition
+    check_df1.errs.ResetWarning()
+
+    # Test a column that contains only blank values and check error message printout
+    check_df1.df['Select_blank'] = np.nan
+    assert check_df1.ColNonBlank('Select_blank') == False
+    exp = exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Required column is blank: Select_blank\n"
+    check_printout(exp, capfd)
+
+def check_printout(expected, capfd):
+    """
+    Check that the printed output matches the expected output
+    JDL 1/11/24
+    """
+    captured = capfd.readouterr()
+    assert captured.out == expected
+    
+def test_CheckDataFrame_instance(check_df1):
+    """
+    Test that CheckDataFrame properly instances the class
+    JDL 1/11/24
+    """
+    # Check that check_df is an instance of CheckDataFrame
+    assert isinstance(check_df1, preflight.CheckDataFrame)
+
+    # Check that the DataFrame and ErrorHandle instance are correctly set as attributes
+    assert isinstance(check_df1.df, pd.DataFrame)
+    assert isinstance(check_df1.errs, ErrorHandle)
+
+def test_df_test1(df_test1):
+    """
+    Check that df_test1 fixture was instanced as intended
+    JDL 1/11/24
+    """
+    # Check the shape of the DataFrame
+    assert df_test1.shape == (4, 3)
+
+    # Check the column names
+    assert list(df_test1.columns) == ['Select', 'id_index', 'Color']
+
+    # Check the data type of the 'id_index' column
+    assert df_test1['id_index'].dtypes == 'int64'
+
+    # Check some values in the DataFrame
+    rows = ['second_row', 'third_row', 'fourth_row']
+    cols = ['Select', 'id_index', 'Color']
+    vals = ['x', 1003, 'pink']
+    for (row, col, val) in zip(rows, cols, vals):
+        assert df_test1.loc[row, col] == val
+
+def test_df_test2(df_test2):
+    """
+    Check that df_test2 fixture was instanced as intended
+    """
+    # Check the shape of the DataFrame
+    assert df_test2.shape == (3, 3)
+
+    # Check the column names
+    assert list(df_test2.columns) == [1002, 1003, 1004]
+
+    # Check the name and data type of the index
+    assert df_test2.index.name == 'id_string'
+    assert df_test2.index.dtype == 'int64'
+
+    # Check the data type of the other columns
+    for col in df_test2.columns:
+        assert df_test2[col].dtypes == 'float64'
+
+    # Check some values in the DataFrame
+    for idx, val in zip([1002, 1003, 1004], [0.02, 0.06, 0.10]):
+        assert df_test2.loc[idx, idx] == val
+
 """
 =========================================================================
 Tests of CheckExcelFiles.CheckFilesProcedure() methods
@@ -53,7 +311,7 @@ the libs subfolder with error_handling.py and preflight.py files.
 =========================================================================
 """
 
-IsPrint = True
+IsPrint = False
 
 def test_CheckFilesProcedure1(check_files):
     """

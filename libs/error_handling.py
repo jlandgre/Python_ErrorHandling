@@ -1,4 +1,4 @@
-#Version 1/4/24
+#Version 1/11/24
 import pandas as pd
 
 #Global code to flag Base error code not found in .df_errs
@@ -62,7 +62,7 @@ class ErrorHandle:
 
     def SetReportErrCode(self):
         """
-        Sets the report error code as the sum of base and local error codes.
+        Sets the report error code as the sum of base and local error codes
         JDL 1/2/24
         """
         # If no iCodeBase, leave iCodeReport as default value of 0
@@ -97,7 +97,7 @@ class ErrorHandle:
 
     def ReportError(self):
         """
-        Reports an error based on the ErrMsg attribute.
+        Reports an error based on the ErrMsg attribute
         JDL 1/2/24
         """
         # Exit if .ErrMsg is empty
@@ -128,15 +128,17 @@ class ErrorHandle:
     ErrorHandle utility functions
     =========================================================================
     """
-    def is_fail(self, is_error, i_code, err_param=None):
+    def is_fail(self, is_error, i_code, Locn, err_param=None):
         """
         Boolean check condition; return True and  set class params if fail
-        JDL 1/2/24
+        JDL 1/2/24; updated 1/11/24 to add Locn argument
         """
         #Check boolean condition specified from calling function
         if not is_error: return False
 
         #If fail, set class parameters
+
+        self.Locn = Locn
         self.IsErr = True
         self.iCodeLocal = i_code
         if err_param is not None: self.ErrParam = err_param

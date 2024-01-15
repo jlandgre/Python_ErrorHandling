@@ -6,6 +6,7 @@ import sys, os
 import pandas as pd
 from io import StringIO
 import pytest
+import inspect
 
 # Import the class to be tested and mockup driver class
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -185,16 +186,20 @@ def test_is_fail(errs):
     """
     Boolean function to check fail/pass condition (evals True if fail)
     Set class parameters if fail
-    JDL 1/2/24
+    JDL 1/2/24; updated 1/11 to add Locn argument to is_fail
     """
-    result = errs.is_fail(True, 1, 'test_param')
+    #Set Locn to this test function name
+    Locn = inspect.currentframe().f_back.f_code.co_name
+
+    result = errs.is_fail(True, 1, Locn, 'test_param')
     assert result == True, 'is_fail should return True when is_error is True'
     assert errs.iCodeLocal == 1, 'iCodeLocal should be set to 1'
     assert errs.ErrParam == 'test_param', 'ErrParam should be set to test_param'
+    assert errs.Locn == Locn, '.Locn should be this test function name'
 
     #Reinitialize errs and test with is_error = False
     errs = ErrorHandle(libs_dir, IsHandle=True)
-    result = errs.is_fail(False, 1)
+    result = errs.is_fail(False, 1, Locn)
     assert result == False, 'is_fail should return False when is_error is False'
     assert errs.iCodeLocal == 0, 'iCodeLocal should be as initialized'
     assert errs.ErrParam == None, 'ErrParam not specified'
