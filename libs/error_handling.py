@@ -1,4 +1,4 @@
-#Version 1/11/24
+#Version 2/2/24
 import pandas as pd
 
 #Global code to flag Base error code not found in .df_errs
@@ -6,7 +6,7 @@ iErrNotFound = 10000
 
 
 class ErrorHandle:
-    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True):
+    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True, IsPrint=True):
         self.IsHandle = IsHandle
 
         self.Locn = ''  # Function where error occurred
@@ -23,7 +23,7 @@ class ErrorHandle:
         self.df_errs = pd.read_excel(libs_dir + 'ErrorCodes.xlsx', sheet_name='Errors_')
 
         self.IsWarning = False  # Flag for warning (non-fatal error)
-        self.IsPrint = True  # Flag printing from ReportError
+        self.IsPrint = IsPrint  # Flag printing from ReportError
         self.IsLog = False  # Flag logging from ReportError
         self.Msgs_Accum = ''  # String with accumulated error messages
         
@@ -128,17 +128,17 @@ class ErrorHandle:
     ErrorHandle utility functions
     =========================================================================
     """
-    def is_fail(self, is_error, i_code, Locn, err_param=None):
+    def is_fail(self, is_error, i_code, Locn=None, err_param=None):
         """
         Boolean check condition; return True and  set class params if fail
-        JDL 1/2/24; updated 1/11/24 to add Locn argument
+        JDL 1/2/24; updated 1/11/24 to add Locn argument; 2/2/24 optional Locn
         """
         #Check boolean condition specified from calling function
         if not is_error: return False
 
         #If fail, set class parameters
 
-        self.Locn = Locn
+        if not Locn is None: self.Locn = Locn
         self.IsErr = True
         self.iCodeLocal = i_code
         if err_param is not None: self.ErrParam = err_param
