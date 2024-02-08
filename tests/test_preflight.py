@@ -7,6 +7,11 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 import pytest
+import logging
+
+#Allow printing with logging.debug('xxx') commands
+logging.basicConfig(level=logging.DEBUG)
+
 
 # Import the class to be tested and mockup driver class
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,11 +28,15 @@ Fixtures and global variables for testing
 """
 @pytest.fixture
 def errs():
-    ErrHeader = 'The program encountered the following fatal error:'
+    #ErrHeader = 'The program encountered the following fatal error:'
+    ErrHeader = ''
     return ErrorHandle(libs_dir, ErrHeader, IsHandle=True)
 
 @pytest.fixture
-def df_errs_test():
+def df_errs_test_prev():
+    """
+    Switch to using Excel ErrorCodes.xlsx file for testing JDL 2/8/24
+    """
     data = """
     iCode,Class,Locn,Msg_String
     100,CheckExcelFiles,CheckFilesProcedure,Base
@@ -50,6 +59,14 @@ def df_errs_test():
     141,CheckDataFrame,NoDuplicateCols,ERROR: DataFrame cannot have duplicate columns
     """
     return pd.read_csv(StringIO(data), skipinitialspace=True)
+
+@pytest.fixture
+def df_errs_test():
+    """
+    Use Excel file for testing error codes
+    JDL 2/8/24
+    """
+    return pd.read_excel(libs_dir + 'ErrorCodes.xlsx', sheet_name='Errors_')
 
 @pytest.fixture
 def check_files(errs, df_errs_test):
@@ -131,10 +148,11 @@ def test_CheckDataFrame_NoDuplicateCols(check_df2, capfd):
     # Modify check_df2.df to replace column 1004 with 1003 to create a duplicate
     check_df2.df.rename(columns={1004: 1003}, inplace=True)
 
+
     # Reset errs to initialized condition and Test a case where there are duplicate columns
     check_df2.errs.ResetWarning()
     assert check_df2.NoDuplicateCols() == False
-    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: DataFrame cannot have duplicate columns: \nDuplicate columns: 1003\n'
+    exp = 'ERROR: DataFrame cannot have duplicate columns and names cannot end in ".x" where x is a digit: \nDuplicate columns: 1003\n'
     check_printout(exp, capfd)
 
 def test_CheckDataFrame_ColumnsContainListVals(check_df2, capfd):
@@ -148,7 +166,7 @@ def test_CheckDataFrame_ColumnsContainListVals(check_df2, capfd):
     # Reset errs to initialized condition and Test a list of values that are not all in the columns
     check_df2.errs.ResetWarning()
     assert check_df2.ColumnsContainListVals([1002, 1003, 1005]) == False
-    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: Columns must contain all specified values: \nMissing: 1005\n'
+    exp = 'ERROR: DataFrame Columns must contain all specified values: \nMissing: 1005\n'
     check_printout(exp, capfd)
 
 def test_CheckDataFrame_IndexContainsListVals(check_df2, capfd):
@@ -162,7 +180,7 @@ def test_CheckDataFrame_IndexContainsListVals(check_df2, capfd):
     # Reset errs to initialized condition and test list of values that are not all in the index
     check_df2.errs.ResetWarning()
     assert check_df2.IndexContainsListVals([1002, 1003, 1005]) == False
-    exp = check_df2.errs.ErrHeader + '\n' + 'ERROR: Index must contain all specified values: \nMissing: 1005\n'
+    exp = 'ERROR: Index must contain all specified values: \nMissing: 1005\n'
     check_printout(exp, capfd)
     
 def test_CheckDataFrame_ColAllPopulated(check_df1, capfd):
@@ -178,7 +196,7 @@ def test_CheckDataFrame_ColAllPopulated(check_df1, capfd):
 
     # Test the Select column which contains blanks
     assert check_df1.ColAllPopulated('Select') == False
-    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: All column values must be non-blank: Select\n"
+    exp = 'ERROR: All column values must be non-blank: Select\n'
     check_printout(exp, capfd)
     
 
@@ -197,7 +215,7 @@ def test_CheckDataFrame_ColAllNumeric(check_df1, capfd):
 
     # Test the column again
     assert check_df1.ColAllNumeric('id_index') == False
-    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Column must contain only non-blank numeric values: id_index\n"
+    exp = 'ERROR: Column must contain only non-blank numeric values: id_index\n'
     check_printout(exp, capfd)
 
 def test_CheckDataFrame_ContainsRequiredCols(check_df1, capfd):
@@ -215,7 +233,7 @@ def test_CheckDataFrame_ContainsRequiredCols(check_df1, capfd):
     # Test a list of columns where at least one is not in the DataFrame
     lst = lst + ['non_existent_column']
     assert check_df1.ContainsRequiredCols(lst) == False
-    exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Required column not present: non_existent_column\n"
+    exp = 'ERROR: Required column not present: non_existent_column\n'
     check_printout(exp, capfd)
 
     
@@ -233,7 +251,7 @@ def test_CheckDataFrame_ColNonBlank(check_df1, capfd):
     # Test a column that contains only blank values and check error message printout
     check_df1.df['Select_blank'] = np.nan
     assert check_df1.ColNonBlank('Select_blank') == False
-    exp = exp = check_df1.errs.ErrHeader + '\n' + "ERROR: Required column is blank: Select_blank\n"
+    exp = 'ERROR: Required column is blank: Select_blank\n'
     check_printout(exp, capfd)
 
 def check_printout(expected, capfd):
@@ -242,6 +260,12 @@ def check_printout(expected, capfd):
     JDL 1/11/24
     """
     captured = capfd.readouterr()
+    #if captured.out != expected:
+    #    logging.debug("\ncaptured.out\n")
+    #    logging.debug(captured.out)
+    #    logging.debug('\n\nexpected\n')
+    #    logging.debug(expected)
+
     assert captured.out == expected
     
 def test_CheckDataFrame_instance(check_df1):

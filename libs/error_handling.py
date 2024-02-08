@@ -39,6 +39,9 @@ class ErrorHandle:
         """
         self.GetBaseErrCode()
         self.SetReportErrCode()
+        #xxx
+        #print('\nBase:', self.iCodeBase, self.iCodeLocal, self.iCodeReport)
+
         self.AppendErrMsg()
         self.ReportError()
         if self.IsWarning: self.ResetWarning()
