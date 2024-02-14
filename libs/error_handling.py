@@ -1,12 +1,15 @@
-#Version 2/2/24
+#Version 2/14/24 Add IsLog option and logging functions
 import pandas as pd
+import os
+import logging
+logger = logging.getLogger(__name__)
 
 #Global code to flag Base error code not found in .df_errs
 iErrNotFound = 10000
 
-
 class ErrorHandle:
-    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True, IsPrint=True):
+    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True, IsPrint=True, IsLog=False):
+
         self.IsHandle = IsHandle
 
         self.Locn = ''  # Function where error occurred
@@ -24,7 +27,7 @@ class ErrorHandle:
 
         self.IsWarning = False  # Flag for warning (non-fatal error)
         self.IsPrint = IsPrint  # Flag printing from ReportError
-        self.IsLog = False  # Flag logging from ReportError
+        self.IsLog = IsLog # Flag logging from ReportError
         self.Msgs_Accum = ''  # String with accumulated error messages
         
     """
@@ -112,8 +115,11 @@ class ErrorHandle:
 
         # Print the error message 
         if self.IsPrint:
-            if (len(self.ErrHeader)>0) & (not self.IsWarning): print(self.ErrHeader)
+            if (len(self.ErrHeader)>0) & (not self.IsWarning): 
+                print(self.ErrHeader)
+                if self.IsLog: logger.error(self.ErrHeader)
             print(self.ErrMsg)
+            if self.IsLog: logger.error(self.ErrMsg)
 
     def ResetWarning(self):
         """
@@ -146,3 +152,37 @@ class ErrorHandle:
         self.iCodeLocal = i_code
         if err_param is not None: self.ErrParam = err_param
         return True
+
+    def reset_log_file(self, logger_root):
+        """
+        Delete and reinitialize the log file
+        """
+        path_file = logger_root.handlers[0].baseFilename
+
+        self.delete_log_file(logger_root, path_file)
+        self.reinitialize_log_file(logger_root, path_file)
+        
+    def logger_filename(self, logger_root):
+        """
+        Return the name of the current logging file (when self.IsLog = True)
+        """
+        return logger_root.handlers[0].baseFilename
+
+    def delete_log_file(self, logger, path_file):
+        """
+        Delete the current logging file
+        """
+        for handler in logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+
+                handler.close()
+                logger.removeHandler(handler)
+                if os.path.isfile(path_file): os.remove(path_file)
+                return path_file
+
+    def reinitialize_log_file(self, logger, path_file):
+        """
+        Re-initialize the log file after deleting it
+        """
+        handler = logging.FileHandler(path_file)
+        logger.addHandler(handler)
