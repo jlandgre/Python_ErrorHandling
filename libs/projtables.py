@@ -42,6 +42,25 @@ class ProjectTables():
         self.tbl1.populated_cols = ['idx', 'col_2']
         self.tbl1.nonblank_cols = ['idx', 'col_1']
     
+    def SetCustomRangeChecks(self):
+        """
+        Example check values within numeric range for list of tbl1 columns -- This demonstrates
+        how to initialize a range check for multiple table column values by presetting arguments  
+        for preflight.CheckTblDataFrame.LstColsAllInNumericRange method
+        JDL 2/19/24
+        """
+        #Set attribute with tuple syntax (col_list, (ll, ul))
+        self.tbl1.check_0to50_numeric_range = (['idx','col_1'], (0, 50))
+
+    def SetCustomSelectionFilters(self):
+        """
+        Example set a custom selection filter for tbl1 - This demonstrates how to hard-code a
+        filter for a table to use in selecting values in other tables etc.
+        JDL 2/19/24
+        """
+        #Example returns a filter True for two rows
+        self.tbl1.fil_selection = (self.tbl1.df['col_1'] > 10) & (self.tbl1.df['col_1'] < 40)
+
     def ImportInputs(self):
         """
         Read each table's raw data - use pd_util.ImportExcel() to avoid importing blank columns
@@ -85,7 +104,7 @@ class Table():
     def ResetDefaultIndex(self, IsDrop=True):
         """
         Set or Reset df index to the default defined for the table
-        JDL 2/15/23
+        JDL 2/20/24
         """
         if self.ColNameIdx is None: return self.df
         if self.df.index.name is None:
@@ -98,19 +117,8 @@ class CheckInputs:
     Check the tbls dataframes for errors
     """
     def __init__(self, tbls, IsPrint=True):
-        #self.path_err_codes = path_err_codes
         self.tbls = tbls
         self.IsPrint = IsPrint
 
         #preflight.CheckDataFrame Class --instanced as needed in methods below
         self.ckdf = None    
-
-        #Instance errs
-        #self.errs = ErrorHandle(path_err_codes, '', IsHandle=True, IsPrint=IsPrint)
-
-
-
-    def tbl1Procedure(self):
-        pass
-
-    

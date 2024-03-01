@@ -143,16 +143,16 @@ def test_tbl1_ColPopulated2(ckinp_tbl1, files, df_errs):
     assert not ckinp_tbl1.ckdf.ColPopulated('col_2')
     check_result(ckinp_tbl1, True, 504, 'col_2', df_errs)
 
-def test_tbl1_LstColsAllPopulated1(ckinp_tbl1):
+def test_tbl1_LstColsPopulated1(ckinp_tbl1):
     """
     list of tbl.populated_cols populated with non-blank values (case where no error)
     JDL 2/16/24
     """
     #Iterate over tbl.populated_cols and check for blanks in all columns
-    assert ckinp_tbl1.ckdf.LstColsAllPopulated()
+    assert ckinp_tbl1.ckdf.LstColsPopulated()
     assert ckinp_tbl1.ckdf.errs.IsErr == False
 
-def test_tbl1_LstColsAllPopulated2(ckinp_tbl1, files, df_errs):
+def test_tbl1_LstColsPopulated2(ckinp_tbl1, files, df_errs):
     """
     list of tbl.populated_cols populated with non-blank values  (error due to blank value)
     JDL 2/16/24
@@ -162,7 +162,7 @@ def test_tbl1_LstColsAllPopulated2(ckinp_tbl1, files, df_errs):
     ckinp_tbl1.ckdf.tbl.populated_cols = ['idx', 'col_2']
 
     #Iterate over tbl.populated_cols and check for blanks in all columns
-    assert not ckinp_tbl1.ckdf.LstColsAllPopulated()
+    assert not ckinp_tbl1.ckdf.LstColsPopulated()
     check_result(ckinp_tbl1, True, 504, 'col_2', df_errs)
 
 def test_tbl1_ColumnsContainListVals1(ckinp_tbl1):
@@ -274,6 +274,7 @@ def test_tbl1_ColNumeric2(ckinp_tbl1, files, df_errs):
     #Check that values in individual column are all numeric
     assert not ckinp_tbl1.ckdf.ColNumeric('col_1')
     check_result(ckinp_tbl1, True, 508, 'col_1', df_errs)
+
 def test_tbl1_LstColsAllNumeric1(ckinp_tbl1):
     """
     list of tbl.numeric_cols all populated with numeric values (case where no error)
@@ -285,7 +286,7 @@ def test_tbl1_LstColsAllNumeric1(ckinp_tbl1):
 
 def test_tbl1_LstColsAllNumeric2(ckinp_tbl1, files, df_errs):
     """
-    list of tbl.numeric_cols all populated with numeric values (error due to blank value)
+    tbls.tbl1.df specified column values are within a specified numeric range
     JDL 2/16/24
     """
     set_alt_tbl_df(ckinp_tbl1.ckdf.tbl, files, 'tbl1_6.xlsx', 'first_sheet')
@@ -294,10 +295,98 @@ def test_tbl1_LstColsAllNumeric2(ckinp_tbl1, files, df_errs):
     assert not ckinp_tbl1.ckdf.LstColsAllNumeric()
     check_result(ckinp_tbl1, True, 508, 'col_1', df_errs)
 
+def test_tbl1_ColValsInNumericRange1(ckinp_tbl1):
+    """
+    tbls.tbl1.df specified column values are within a specified numeric range
+    JDL 2/19/24
+    """
+    #Column values are within a numeric range (less than or equal; greater than or equal)
+    llim, ulim = 0, 100
+    assert ckinp_tbl1.ckdf.ColValsInNumericRange('col_1', llim, ulim)
+    assert ckinp_tbl1.ckdf.errs.IsErr == False
+
+def test_tbl1_ColValsInNumericRange2(ckinp_tbl1, files, df_errs):
+    """
+    tbls.tbl1.df specified column values are within a specified numeric range
+    (case where no error)
+    JDL 2/19/24
+    """
+    #Contains value less than or equal to llim
+    set_alt_tbl_df(ckinp_tbl1.ckdf.tbl, files, 'tbl1_7.xlsx', 'first_sheet')
+
+    #Check for out-of-range values
+    ll, ul = 0, 50
+    assert not ckinp_tbl1.ckdf.ColValsInNumericRange('col_1', llim=ll, ulim=ul)
+    check_result(ckinp_tbl1, True, 509, 'col_1', df_errs)
+
+def test_tbl1_ColValsInNumericRange3(ckinp_tbl1, files, df_errs):
+    """
+    tbls.tbl1.df specified column values are within a specified numeric range
+    (case where error due to value less than llim)
+    JDL 2/19/24
+    """
+    set_alt_tbl_df(ckinp_tbl1.ckdf.tbl, files, 'tbl1_8.xlsx', 'first_sheet')
+
+    #Check for out-of-range values
+    ll, ul = 0, 50
+    assert not ckinp_tbl1.ckdf.ColValsInNumericRange('col_1', llim=ll, ulim=ul)
+    check_result(ckinp_tbl1, True, 509, 'col_1', df_errs)
+
+def test_tbl1_ColValsInNumericRange4(ckinp_tbl1, files, df_errs):
+    """
+    tbls.tbl1.df specified column values are within a specified numeric range
+    (case where llim not specified; error due to value greater than ulim)
+    JDL 2/19/24
+    """
+    set_alt_tbl_df(ckinp_tbl1.ckdf.tbl, files, 'tbl1_8.xlsx', 'first_sheet')
+
+    #Check for out-of-range values
+    ul = 50
+    assert not ckinp_tbl1.ckdf.ColValsInNumericRange('col_1', ulim=ul)
+    check_result(ckinp_tbl1, True, 509, 'col_1', df_errs)
+
+def test_tbl1_LstColsAllInNumericRange1(ckinp_tbl1, tbls):
+    """
+    tbls.tbl1.df list of columns' values are within a specified numeric range
+    JDL 2/19/24
+    """
+    #Set attributes to hard-coded values with tuple syntax (col_list, (ll, ul))
+    tbls.SetCustomRangeChecks()
+    lst = ['idx', 'col_1']
+    ll, ul = tbls.tbl1.check_0to50_numeric_range[1]
+    assert lst == ['idx', 'col_1']
+    assert ll == 0
+    assert ul == 50
+
+    #Iterate over tbl.populated_cols and check values for lst are within specified range
+    assert ckinp_tbl1.ckdf.LstColsAllInNumericRange(lst, llim=ll, ulim=ul)
+    assert ckinp_tbl1.ckdf.errs.IsErr == False
+
+def test_tbl1_LstColsAllInNumericRange2(ckinp_tbl1, files, df_errs):
+    """
+    tbls.tbl1.df list of columns' values are within a specified numeric range
+    (case where llim not specified; error due to value greater than ulim)
+    JDL 2/19/24
+    """
+    set_alt_tbl_df(ckinp_tbl1.ckdf.tbl, files, 'tbl1_7.xlsx', 'first_sheet')
+
+    #Iterate over tbl.populated_cols and check values for lst are within specified range
+    ll, ul = 0, 50
+    assert not ckinp_tbl1.ckdf.LstColsAllInNumericRange(['idx', 'col_1'], llim=ll, ulim=ul)
+    check_result(ckinp_tbl1, True, 509, 'col_1', df_errs)
+
 """
 ================================================================================
 """
-### Ready for ColValsInNumericRange; stop 2/16/24 16:07
+def test_tbl1_CustomSelectionFilters(tbls):
+    """
+    Check ability to set a custom selection filter based on tbl1 values
+    JDL 2/19/24
+    """
+    #Test hard-coded filter for col_1 values gt 10 and lt 40
+    tbls.SetCustomSelectionFilters()
+    assert list(tbls.tbl1.fil_selection.values) == [False, True, True, False, False]
+
 """
 ================================================================================
 """

@@ -4,27 +4,33 @@ import os
 from openpyxl import load_workbook
 import util
 from error_handling import ErrorHandle
+
+#Initialize logging in case needed based on errs IsLog attribute
+import logging
+logger = logging.getLogger(__name__)
+
 """
 =========================================================================
 This class checks a projfiles.Table instance's .df structure and data  
 values based on specified Table attributes such as a list of required
-columns and the .df's default index
+columns and the .df's default index - Version 2/26/24
 =========================================================================
 """
 class CheckTblDataFrame:
-    def __init__(self, path_err_codes, tbl, IsCustomCodes=False, IsPrint=True):
+    def __init__(self, path_err_codes, tbl, IsCustomCodes=False, IsPrint=True, IsLog=False):
         """
         Initialize CheckDataFrame with df and errs ErrorHandle instance as attributes.
         JDL 2/16/24
         """
         self.tbl = tbl
         self.IsPrint = IsPrint
-        self.errs = ErrorHandle(path_err_codes, '', IsHandle=True, IsPrint=IsPrint)
+        self.IsLog = IsLog
+        self.errs = ErrorHandle(path_err_codes, '', IsHandle=True, IsPrint=IsPrint,)
 
         #If enabled, will not override errs.Locn with function name for code lookup
         self.IsCustomCodes = IsCustomCodes 
 
-    def ContainsRequiredCols(self):
+    def ContainsRequiredCols(self, cols_req=None):
         """
         .tbl.df contains specified list of column names (True if so)
         JDL 2/16/24
@@ -32,8 +38,11 @@ class CheckTblDataFrame:
         #Enable custom error codes
         Locn = self.errs.Locn if self.IsCustomCodes else util.current_fn()
 
+        #Enable override list of required columns list
+        if cols_req is None: cols_req = self.tbl.required_cols
+
         #Check df has all required columns
-        for col in self.tbl.required_cols:
+        for col in cols_req:
             if self.errs.is_fail((not col in self.tbl.df.columns), 1, Locn, col):
                 self.errs.RecordErr()
                 return False
@@ -86,7 +95,7 @@ class CheckTblDataFrame:
         if self.errs.is_fail(True, 3, self.errs.Locn, ErrParam): self.errs.RecordErr()
         return False
 
-    def LstColsAllPopulated(self):
+    def LstColsPopulated(self):
         """
         .tbl.df list of tbl.populated_cols populated with non-blank values (True if so)
         JDL 2/16/24
@@ -145,8 +154,15 @@ class CheckTblDataFrame:
         .tbl.df list of tbl.nonblank_cols all contain at least one non-blank value (True if so)
         JDL 2/16/24
         """
+        print('\n\n')
+        print(self.tbl.df)
+        print('\n\n')
+
         for col in self.tbl.nonblank_cols:
-            if not self.ColNonBlank(col): return False
+            print('\ncol:', col)
+            if not self.ColNonBlank(col):
+                print(col, 'is not nonblank')
+                return False
         return True
 
     def ColNonBlank(self, col_name):
@@ -176,7 +192,7 @@ class CheckTblDataFrame:
     def ColNumeric(self, col_name):
         """
         Check if values in a specified column are non-blank and numeric (True if so)
-        JDL 2/16/24
+        JDL 2/19/24
         """
         #Enable custom error codes
         if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
@@ -188,11 +204,20 @@ class CheckTblDataFrame:
             self.errs.RecordErr()
             return False
         return True
-    
+
+    def LstColsAllInNumericRange(self, lst_cols, llim=None, ulim=None):
+        """
+        tbls.tbl1.df list of columns' values are within a specified numeric range
+        JDL 2/19/24
+        """
+        for col in lst_cols:
+            if not self.ColValsInNumericRange(col, llim=llim, ulim=ulim): return False
+        return True
+
     def ColValsInNumericRange(self, col, llim=None, ulim=None):
         """
         Check that column values (must be numeric) are within specified range
-        JDL 2/16/24
+        JDL 2/19/24
         """
         #Enable custom error codes
         if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
@@ -213,7 +238,6 @@ class CheckTblDataFrame:
         return True
 
 
-
 """
 ================================================================================
 Legacy CheckDataFrame class for checking a DataFrame's structure and data
@@ -223,8 +247,6 @@ class CheckDataFrame:
     def __init__(self, df, errs, IsCustomErrCodes=False):
         """
         Initialize CheckDataFrame with df and errs ErrorHandle instance as attributes.
-        Note that method local error codes are unique to all use of custom codes by 
-        customizing self.errs.Locn
         JDL 1/11/24
         """
         self.df = df
@@ -249,7 +271,6 @@ class CheckDataFrame:
                 self.errs.RecordErr()
                 return False
         return True
-
 
     def ColValsInNumericRange(self, col, llim=None, ulim=None):
         """
@@ -287,6 +308,8 @@ class CheckDataFrame:
 
         # Check for duplicate index values
         if index.is_unique: return True
+
+        # Report error if duplicate index values found
         duplicates = index[index.duplicated()].unique()
         ErrParam = "\nDuplicate indices: " + ', '.join(map(str, duplicates))
         if self.errs.is_fail(True, 10, self.errs.Locn, ErrParam): self.errs.RecordErr()
@@ -301,7 +324,7 @@ class CheckDataFrame:
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
 
         cols = self.df.columns
-        
+
         # Check if there are duplicate column names
         if not cols.is_unique: 
             duplicates = cols[cols.duplicated()].unique()
@@ -408,7 +431,7 @@ class CheckDataFrame:
 
         #Check column contains at least one non-blank value
         is_col_nonblank = self.df[col_name].notnull().any()
-        if self.errs.is_fail((not is_col_nonblank), 11, self.errs.Locn, col_name):
+        if self.errs.is_fail((not is_col_nonblank), 7, self.errs.Locn, col_name):
             self.errs.RecordErr()
             return False
         return True
@@ -455,10 +478,7 @@ class CheckExcelFiles:
         """
         #If error, use .is_fail to set params including Locn of calling function
         fpath = self.lst_files[idx]
-        #sFPath = '\n ' + fpath + '\n'
 
-
-        #if self.errs.is_fail(not os.path.exists(fpath), 1, self.errs.Locn, sFPath):
         if not os.path.exists(fpath):
 
             #Shorten the directory path for printing
