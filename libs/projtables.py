@@ -20,10 +20,12 @@ class ProjectTables():
 
         #Create an example table
         self.spf_input1 = files.path_data + lst_files[0]
+        self.spf_input2 = files.path_data + lst_files[1]
         self.tbl1 = Table(self.spf_input1, 'Table1', 'first_sheet', 'idx')
+        self.tbl2 = Table(self.spf_input2, 'Table2', 'first_sheet', 'idx')
 
         #Set lists of inputs and outputs
-        self.lstImports = [self.tbl1]
+        self.lstImports = [self.tbl1, self.tbl2]
         self.lstOutputs = []
 
         #Initialize Output DataFrames to have the right type

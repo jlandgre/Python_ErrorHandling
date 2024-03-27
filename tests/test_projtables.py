@@ -33,7 +33,7 @@ def files():
 
 @pytest.fixture
 def tbls(files):
-    tbls = ProjectTables(files, ['tbl1.xlsx'])
+    tbls = ProjectTables(files, ['tbl1.xlsx', 'tbl2.xlsx'])
     tbls.ImportInputs()
     return tbls
 
@@ -59,6 +59,20 @@ def ckinp_tbl1(ckinp, files, tbls):
                                    IsCustomCodes=True, IsPrint=ckinp.IsPrint)
     ckinp.ckdf.errs.Locn = 'tbl1Procedure'
     return ckinp
+
+@pytest.fixture
+def ckinp_tbl2(ckinp, files, tbls):
+    """
+    Instance preflight.CheckTblDataFrame for tbls.tbl2.df
+    Set custom error code lookup key
+    """
+    ckinp.ckdf = CheckTblDataFrame(files.path_data, tbls.tbl2, 
+                                   IsCustomCodes=True, IsPrint=ckinp.IsPrint)
+    ckinp.ckdf.errs.Locn = 'tbl2Procedure'
+    return ckinp
+
+
+
 """
 ================================================================================
 """
@@ -375,6 +389,27 @@ def test_tbl1_LstColsAllInNumericRange2(ckinp_tbl1, files, df_errs):
     assert not ckinp_tbl1.ckdf.LstColsAllInNumericRange(['idx', 'col_1'], llim=ll, ulim=ul)
     check_result(ckinp_tbl1, True, 509, 'col_1', df_errs)
 
+def test_tbl2_ColValsMatchRegex1(ckinp_tbl2, files, tbls):
+    """
+    .tbl2.df to check that values match specified regex pattern (case where no error)
+    JDL 3/1/24
+    """
+    #Check for values in individual column that match regex pattern
+    assert ckinp_tbl2.ckdf.ColValsMatchRegex('col_2', r'FC [TB] \w+', 
+                                             IgnoreCase=True)
+    assert ckinp_tbl2.ckdf.errs.IsErr == False
+
+def test_tbl2_ColValsMatchRegex2(ckinp_tbl2, files, df_errs):
+    """
+    .tbl2.df to check that values match specified regex pattern (case where no error)
+    JDL 3/1/24
+    """
+    set_alt_tbl_df(ckinp_tbl2.ckdf.tbl, files, 'tbl2_1.xlsx', 'first_sheet')
+
+    #Check for values in individual column that match regex pattern
+    assert not ckinp_tbl2.ckdf.ColValsMatchRegex('col_2', r'FC [TB] \w+', 
+                                             IgnoreCase=True)
+    check_result(ckinp_tbl2, True, 530, 'col_2', df_errs)
 """
 ================================================================================
 """

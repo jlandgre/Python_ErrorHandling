@@ -1,7 +1,8 @@
-#Version 2/16/24 - Add CheckTblDataFrame class and tests
+#Version 3/1/24 - Add CheckTblDataFrame.ColumnValsMatchRegex method
 import pandas as pd
 import os
 from openpyxl import load_workbook
+import re
 import util
 from error_handling import ErrorHandle
 
@@ -237,6 +238,22 @@ class CheckTblDataFrame:
             return False
         return True
 
+    def ColValsMatchRegex(self, col_name, str_regex, IgnoreCase=False):
+        """
+        Check that column values match specified regex pattern
+        JDL 3/1/24
+        """
+
+        # Check if all column values match the regex
+        fn_lambda = lambda x: bool(re.match(str_regex, str(x)))
+        if IgnoreCase: fn_lambda = lambda x: bool(re.match(str_regex, str(x), re.IGNORECASE))
+            
+        is_match =  self.tbl.df[col_name].apply(fn_lambda).all()
+
+        if self.errs.is_fail((not is_match), 10, self.errs.Locn, str(col_name)):
+            self.errs.RecordErr()
+            return False
+        return True
 
 """
 ================================================================================

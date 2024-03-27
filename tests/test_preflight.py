@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Import the class to be tested and mockup driver class
 current_dir = os.path.dirname(os.path.abspath(__file__))
 libs_dir = os.path.dirname(current_dir) +  os.sep + 'libs' + os.sep
+
 if not libs_dir in sys.path: sys.path.append(libs_dir)
 import preflight
 from preflight import CheckExcelFiles
@@ -37,6 +38,13 @@ def df_errs_test():
     JDL 2/8/24
     """
     return pd.read_excel(libs_dir + 'ErrorCodes.xlsx', sheet_name='Errors_')
+
+
+"""
+=========================================================================
+Tests of CheckDataFrame class methods
+=========================================================================
+"""
 
 @pytest.fixture
 def check_files(errs, df_errs_test):
@@ -99,13 +107,6 @@ def check_df2(errs, df_errs_test, df_test2):
     errs.df_errs = df_errs_test
     return CheckDataFrame(df_test2, errs)
 
-"""
-=========================================================================
-Tests of CheckDataFrame class methods
-
-These tests use mockup DataFrames for various tests of dataframes
-=========================================================================
-"""
 
 def test_CheckDataFrame_NoDuplicateCols(check_df2, capfd):
     """
