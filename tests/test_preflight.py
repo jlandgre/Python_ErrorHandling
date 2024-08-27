@@ -44,16 +44,9 @@ def df_errs_test(path_err_codes):
 
 """
 =========================================================================
-Tests of CheckDataFrame and CheckDataFrame class methods
+Tests of CheckDataFrame class methods
 =========================================================================
 """
-@pytest.fixture
-def check_files(errs, df_errs_test):
-    errs.df_errs = df_errs_test
-    errs.Locn = 'CheckFilesProcedure'
-    lst_files, lst_shts = ['../tests/test_mockup.xlsx'], [['']]
-    return CheckExcelFiles(lst_files, lst_shts, errs)
-
 @pytest.fixture
 def df_test1():
     data = """
@@ -179,22 +172,8 @@ def test_CheckDataFrame_checkdf2(checkdf2):
     assert checkdf2.tbl.df.shape == (3, 3)
 """
 =========================================================================
-"""
-
-def test_CheckExcelFiles_check_files(check_files):
-    """
-    check_files CheckExcelFiles instance fixture
-    JDL 8/26/24
-    """
-    assert len(check_files.lst_files) == 1
-    assert isinstance(check_files, CheckExcelFiles)
-    assert isinstance(check_files.errs, ErrorHandle)
-
-
-"""
-=========================================================================
 CheckDataFrame preflight tests
-(Takes tbl / tbl.df as input for "1" tests; df for "2" tests)
+(Takes tbl / tbl.df as input for "1" tests; df arg for "2" tests)
 =========================================================================
 """
 def test_CheckDataFrame_ContainsRequiredCols1(checkdf1, capfd):
@@ -923,7 +902,7 @@ def test_CheckDataFrame_TableLocMatchesRegex2(checkdf1, capfd):
 
 def test_CheckDataFrame_NoDuplicateColVals1(checkdf1, capfd):
     """
-    Check if values in a specified column are within a specified numeric range
+    Specified column does not have duplicate values (True if so)
     JDL 8/26/24
     """
     # Test a column with list that passes
@@ -940,7 +919,7 @@ def test_CheckDataFrame_NoDuplicateColVals1(checkdf1, capfd):
 
 def test_CheckDataFrame_NoDuplicateColVals2(checkdf1, capfd):
     """
-    Check if values in a specified column are within a specified numeric range
+    Specified column does not have duplicate values (True if so)
     (Custom error codes; check df instead of tbl.df)
     JDL 8/27/24
     """
@@ -987,6 +966,26 @@ the libs subfolder with error_handling.py and preflight.py files.
 """
 
 IsPrint = False
+
+@pytest.fixture
+def check_files(errs, df_errs_test):
+    errs.df_errs = df_errs_test
+    errs.Locn = 'CheckFilesProcedure'
+    lst_files, lst_shts = ['../tests/test_mockup.xlsx'], [['']]
+    return CheckExcelFiles(lst_files, lst_shts, errs)
+
+def test_CheckExcelFiles_check_files(check_files):
+    """
+    check_files CheckExcelFiles instance fixture
+    JDL 8/26/24
+    """
+    assert len(check_files.lst_files) == 1
+    assert isinstance(check_files, CheckExcelFiles)
+    assert isinstance(check_files.errs, ErrorHandle)
+
+"""
+=========================================================================
+"""
 
 def test_CheckExcelFiles_CheckFilesProcedure1(check_files):
     """
