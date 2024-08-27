@@ -1,13 +1,6 @@
-#Version 8/26/24 Validate with preflight.py 8/26/24 version
+#Version 8/27/24
 #python -m pytest test_preflight.py -v -s
 #2345678901234567890123456789012345678901234567890123456789012345678901234567890
-
-#Stop 8/26/24 17:02
-#1. Modify preflight.py methods to all have df=None args
-#2. Add a second test of each preflight that uses custom codes and df instead
-#   of default error codes and tbl.df
-#
-
 
 import sys, os
 import pandas as pd
@@ -19,16 +12,14 @@ import logging
 #Allow printing with logging.debug('xxx') commands
 logging.basicConfig(level=logging.DEBUG)
 
-
 # Import the class to be tested and mockup driver class
 current_dir = os.path.dirname(os.path.abspath(__file__))
 libs_dir = os.path.dirname(current_dir) +  os.sep + 'libs' + os.sep
 
 if not libs_dir in sys.path: sys.path.append(libs_dir)
 from preflight import CheckExcelFiles
-from error_handling import ErrorHandle
-from preflight import CheckTblDataFrame
 from preflight import CheckDataFrame
+from error_handling import ErrorHandle
 from projtables import Table
 """
 =========================================================================
@@ -53,7 +44,7 @@ def df_errs_test(path_err_codes):
 
 """
 =========================================================================
-Tests of CheckTblDataFrame and CheckDataFrame class methods
+Tests of CheckDataFrame and CheckDataFrame class methods
 =========================================================================
 """
 @pytest.fixture
@@ -74,7 +65,7 @@ def df_test1():
     """
     df = pd.read_csv(StringIO(data.strip()), skipinitialspace=True)
 
-    #Convert id_index to numeric and set as index
+    #Convert id_index column to numeric and set as index
     df['id_index'] = df['id_index'].astype(int)
     df.set_index('Row_Name', inplace=True)
     return df
@@ -104,41 +95,26 @@ def df_test2():
 @pytest.fixture
 def tbl():
     """
-    Instance dummy Table class to use in testing CheckTblDataFrame
+    Instance dummy Table class to use in testing CheckDataFrame
     JDL 8/26/24
     """
     return Table('', 'Dummy_Table', '', '')
 
 @pytest.fixture
-def check_tbldf1(df_test1, tbl):
+def checkdf1(df_test1, tbl):
     """
-    Instance CheckTblDataFrame instance with df_test1
+    Instance CheckDataFrame instance with df_test1
     """
     tbl.name, tbl.df = 'df_test1', df_test1
-    return CheckTblDataFrame(libs_dir, tbl)
+    return CheckDataFrame(libs_dir, tbl)
 
 @pytest.fixture
-def check_tbldf2(df_test2, tbl):
+def checkdf2(df_test2, tbl):
     """
-    Instance CheckTblDataFrame instance with df_test2
+    Instance CheckDataFrame instance with df_test2
     """
     tbl.name, tbl.df = 'df_test2', df_test2
-    return CheckTblDataFrame(libs_dir, tbl)
-
-@pytest.fixture
-def check_df1(df_test1, errs):
-    """
-    CheckDataFrame instance with df_test1
-    """
-    return CheckDataFrame(df_test1, errs)
-
-@pytest.fixture
-def check_df2(df_test2, errs):
-    """
-    CheckDataFrame instance with df_test2
-    """
-    return CheckDataFrame(df_test2, errs)
-
+    return CheckDataFrame(libs_dir, tbl)
 
 """
 =========================================================================
@@ -184,41 +160,23 @@ def test_fixtures_df_test2(df_test2):
 """
 =========================================================================
 """
-def test_CheckTblDataFrame_check_tbldf1(check_tbldf1):
+def test_CheckDataFrame_checkdf1(checkdf1):
     """
-    check_df1 CheckTblDataFrame instance fixture with df_test1
+    check_df1 CheckDataFrame instance fixture with df_test1
     JDL 8/26/24
     """
-    assert isinstance(check_tbldf1.tbl, Table)
-    assert isinstance(check_tbldf1.errs, ErrorHandle)
-    assert check_tbldf1.tbl.df.shape == (4, 3)
+    assert isinstance(checkdf1.tbl, Table)
+    assert isinstance(checkdf1.errs, ErrorHandle)
+    assert checkdf1.tbl.df.shape == (4, 3)
 
-def test_CheckTblDataFrame_check_tbldf2(check_tbldf2):
+def test_CheckDataFrame_checkdf2(checkdf2):
     """
-    check_df2 CheckTblDataFrame instance fixture with df_test2
+    check_df2 CheckDataFrame instance fixture with df_test2
     JDL 8/26/24
     """
-    assert isinstance(check_tbldf2.tbl, Table)
-    assert isinstance(check_tbldf2.errs, ErrorHandle)
-    assert check_tbldf2.tbl.df.shape == (3, 3)
-"""
-=========================================================================
-"""
-def test_CheckDataFrame_check_df1(check_df1):
-    """
-    check_df1 CheckDataFrame instance with df_test1
-    JDL 8/26/24
-    """
-    assert isinstance(check_df1.errs, ErrorHandle)
-    assert check_df1.df.shape == (4, 3)
-
-def test_CheckDataFrame_check_df2(check_df2):
-    """
-    check_df2 CheckDataFrame instance with df_test2
-    JDL 8/26/24
-    """
-    assert isinstance(check_df2.errs, ErrorHandle)
-    assert check_df2.df.shape == (3, 3)
+    assert isinstance(checkdf2.tbl, Table)
+    assert isinstance(checkdf2.errs, ErrorHandle)
+    assert checkdf2.tbl.df.shape == (3, 3)
 """
 =========================================================================
 """
@@ -235,372 +193,578 @@ def test_CheckExcelFiles_check_files(check_files):
 
 """
 =========================================================================
-CheckTblDataFrame preflight tests
-(Takes tbl / tbl.df as input instead of df as with CheckDataFrame)
+CheckDataFrame preflight tests
+(Takes tbl / tbl.df as input for "1" tests; df for "2" tests)
 =========================================================================
 """
-def test_CheckTblDataFrame_ContainsRequiredCols(check_df1, capfd):
+def test_CheckDataFrame_ContainsRequiredCols1(checkdf1, capfd):
     """
-    Check if .df contains a specified list of column names
-    JDL 1/11/24
+    .tbl.df contains specified list of column names (True if so)
+    JDL 1/11/24; Modified 8/27/24
     """
     # Test a list of columns that are in the DataFrame
-    lst = list(check_df1.df.columns)
-    assert check_df1.ContainsRequiredCols(lst) == True
+    lst = list(checkdf1.tbl.df.columns)
+    assert checkdf1.ContainsRequiredCols(lst) == True
 
     # Reset errs to initialized condition
-    check_df1.errs.ResetWarning()
+    checkdf1.errs.ResetWarning()
 
     # Test a list of columns where at least one is not in the DataFrame
     lst = lst + ['non_existent_column']
-    assert check_df1.ContainsRequiredCols(lst) == False
+    assert checkdf1.ContainsRequiredCols(lst) == False
     exp = 'ERROR: Required column not present: non_existent_column\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_NoDuplicateCols(check_tbldf2, capfd):
+def test_CheckDataFrame_ContainsRequiredCols2(checkdf1, capfd):
     """
-    Check if the DataFrame self.df does not have duplicate column names
+    df contains specified list of column names (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ContainsRequiredCols'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a list of columns that are in the DataFrame
+    lst = list(df_test.columns)
+    assert checkdf1.ContainsRequiredCols(lst, df=df_test) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test a list of columns where at least one is not in the DataFrame
+    lst = lst + ['non_existent_column']
+    assert checkdf1.ContainsRequiredCols(lst, df=df_test) == False
+    exp = 'custom_ContainsRequiredCols: non_existent_column\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_NoDuplicateCols1(checkdf2, capfd):
+    """
+    .tbl.df has unique column names (True if so)
     JDL 1/11/24
     """
     # Test a case where there are no duplicate columns
-    assert check_tbldf2.NoDuplicateCols() == True
+    assert checkdf2.NoDuplicateCols() == True
 
-    # Modify check_tbldf2.df to replace column 1004 with 1003 to create a duplicate
-    check_tbldf2.tbl.df.rename(columns={1004: 1003}, inplace=True)
+    # Modify checkdf2.df to replace column 1004 with 1003 to create a duplicate
+    checkdf2.tbl.df.rename(columns={1004: 1003}, inplace=True)
 
     # Reset errs to initialized condition and Test a case where there are duplicate columns
-    check_tbldf2.errs.ResetWarning()
-    assert check_tbldf2.NoDuplicateCols() == False
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.NoDuplicateCols() == False
     exp = 'ERROR: DataFrame cannot have duplicate columns and names cannot end in ".x" where x is a digit: \nDuplicate columns: 1003\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_NoDuplicateIndices(check_tbldf2, capfd):
+def test_CheckDataFrame_NoDuplicateCols2(checkdf2, capfd):
     """
-    Check if the DataFrame self.df does not have duplicate column names
+    df has unique column names (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_NoDuplicateCols'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    # Test a case where there are no duplicate columns
+    assert checkdf2.NoDuplicateCols(df=df_test) == True
+
+    # Modify checkdf2.df to replace column 1004 with 1003 to create a duplicate
+    df_test.rename(columns={1004: 1003}, inplace=True)
+
+    # Reset errs to initialized condition and Test a case where there are duplicate columns
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.NoDuplicateCols(df=df_test) == False
+    exp = 'custom_NoDuplicateCols: \nDuplicate columns: 1003\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_NoDuplicateIndices1(checkdf2, capfd):
+    """
+    .tbl.df has unique index values (True if so)
     JDL 1/11/24
     """
     # Test a case where there are no duplicate indices
-    assert check_tbldf2.NoDuplicateIndices() == True
+    assert checkdf2.NoDuplicateIndices() == True
 
-    # Modify check_tbldf2.df to replace 1003 index to create a duplicate
-    check_tbldf2.tbl.df.index = [1002, 1002, 1004]
+    # Modify checkdf2.df to replace 1003 index to create a duplicate
+    checkdf2.tbl.df.index = [1002, 1002, 1004]
 
     # Reset errs to initialized condition and Test a case where there are duplicate columns
-    check_tbldf2.errs.ResetWarning()
-    assert check_tbldf2.NoDuplicateIndices() == False
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.NoDuplicateIndices() == False
     exp = 'ERROR: DataFrame index values must be unique: \nDuplicate indices: 1002\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColPopulated(check_tbldf1, capfd):
+def test_CheckDataFrame_NoDuplicateIndices2(checkdf2, capfd):
     """
-    Check if all values in a specified column are non-null
+    df has unique index values (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_NoDuplicateIndices'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    # Test a case where there are no duplicate indices
+    assert checkdf2.NoDuplicateIndices(df=df_test) == True
+
+    # Modify checkdf2.df to replace 1003 index to create a duplicate
+    df_test.index = [1002, 1002, 1004]
+
+    # Reset errs to initialized condition and Test a case where there are duplicate columns
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.NoDuplicateIndices(df=df_test) == False
+    exp = 'custom_NoDuplicateIndices: \nDuplicate indices: 1002\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColPopulated1(checkdf1, capfd):
+    """
+    All values in a specified column are non-null (True if so)
     JDL 1/11/24
     """
     # Test a column that contains only non-null values
-    assert check_tbldf1.ColPopulated('id_index') == True
+    assert checkdf1.ColPopulated('id_index') == True
 
     # Reset errs to initialized condition and Change a value to NaN
-    check_tbldf1.errs.ResetWarning()
+    checkdf1.errs.ResetWarning()
 
     # Test the Select column which contains blanks
-    assert check_tbldf1.ColPopulated('Select') == False
+    assert checkdf1.ColPopulated('Select') == False
     exp = 'ERROR: All column values must be non-null: Select\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColumnsContainListVals(check_tbldf2, capfd):
+def test_CheckDataFrame_ColPopulated2(checkdf1, capfd):
     """
-    Check if the DataFrame columns contain a specified list of values
+    All values in a specified column are non-null (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColPopulated'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a column that contains only non-null values
+    assert checkdf1.ColPopulated('id_index', df=df_test) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf1.errs.ResetWarning()
+
+    # Test the Select column which contains blanks
+    assert checkdf1.ColPopulated('Select', df=df_test) == False
+    exp = 'custom_ColPopulated: Select\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColumnsContainListVals1(checkdf2, capfd):
+    """
+    DataFrame columns contain a specified list of values
     JDL 1/11/24
     """
     # Test a list of values that are all in the columns
-    assert check_tbldf2.ColumnsContainListVals([1002, 1003]) == True
+    assert checkdf2.ColumnsContainListVals([1002, 1003]) == True
 
     # Reset errs to initialized condition and Test a list of values that are not all in the columns
-    check_tbldf2.errs.ResetWarning()
-    assert check_tbldf2.ColumnsContainListVals([1002, 1003, 1005]) == False
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.ColumnsContainListVals([1002, 1003, 1005]) == False
     exp = 'ERROR: DataFrame Columns must contain all specified values: \nMissing: 1005\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_IndexContainsListVals(check_tbldf2, capfd):
+def test_CheckDataFrame_ColumnsContainListVals2(checkdf2, capfd):
     """
-    Check if the DataFrame index contains a specified list of values
+    DataFrame columns contain a specified list of values
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_ColumnsContainListVals'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    # Test a list of values that are all in the columns
+    assert checkdf2.ColumnsContainListVals([1002, 1003], df=df_test) == True
+
+    # Reset errs to initialized condition and Test a list of values that are not all in the columns
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.ColumnsContainListVals([1002, 1003, 1005], df=df_test) == False
+    exp = 'custom_ColumnsContainListVals: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_IndexContainsListVals1(checkdf2, capfd):
+    """
+    DataFrame index contains a specified list of values
     JDL 1/11/24
     """
     # Test a list of values that are all in the index
-    assert check_tbldf2.IndexContainsListVals([1002, 1003]) == True
+    assert checkdf2.IndexContainsListVals([1002, 1003]) == True
 
     # Reset errs to initialized condition and test list of values that are not all in the index
-    check_tbldf2.errs.ResetWarning()
-    assert check_tbldf2.IndexContainsListVals([1002, 1003, 1005]) == False
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.IndexContainsListVals([1002, 1003, 1005]) == False
     exp = 'ERROR: Index must contain all specified values: \nMissing: 1005\n'
     check_printout(exp, capfd)
     
-    
-def test_CheckTblDataFrame_ColNonBlank(check_tbldf1, capfd):
+def test_CheckDataFrame_IndexContainsListVals2(checkdf2, capfd):
     """
-    Test that ColNonBlank checks if a specified column contains any non-blank values
+    DataFrame index contains a specified list of values
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_IndexContainsListVals'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    # Test a list of values that are all in the index
+    assert checkdf2.IndexContainsListVals([1002, 1003], df=df_test) == True
+
+    # Reset errs to initialized condition and test list of values that are not all in the index
+    checkdf2.errs.ResetWarning()
+    assert checkdf2.IndexContainsListVals([1002, 1003, 1005], df=df_test) == False
+    exp = 'custom_IndexContainsListVals: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+    
+def test_CheckDataFrame_ColNonBlank1(checkdf1, capfd):
+    """
+    Specified column contains no non-blank values (True if so)
     JDL 1/11/24; Modified 8/26/24
     """
     # Test a column that contains non-blank values
-    assert check_tbldf1.ColNonBlank('Select') == True
+    assert checkdf1.ColNonBlank('Select') == True
 
     # Reset errs to initialized condition
-    check_tbldf1.errs.ResetWarning()
+    checkdf1.errs.ResetWarning()
 
     # Test a column that contains only blank values and check error message printout
-    check_tbldf1.tbl.df['Select_blank'] = np.nan
-    assert check_tbldf1.ColNonBlank('Select_blank') == False
+    checkdf1.tbl.df['Select_blank'] = np.nan
+    assert checkdf1.ColNonBlank('Select_blank') == False
     exp = 'ERROR: DataFrame column cannot be blank: Select_blank\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColNumeric(check_tbldf1, capfd):
+def test_CheckDataFrame_ColNonBlank2(checkdf1, capfd):
     """
-    Check if values in a specified column are non-blank and numeric
+    Specified column contains no non-blank values (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColNonBlank'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a column that contains non-blank values
+    assert checkdf1.ColNonBlank('Select', df=df_test) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test a column that contains only blank values and check error message printout
+    df_test['Select_blank'] = np.nan
+    assert checkdf1.ColNonBlank('Select_blank', df=df_test) == False
+    exp = 'custom_ColNonBlank: Select_blank\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColNumeric1(checkdf1, capfd):
+    """
+    Values in a specified column are non-blank and numeric (True if so)
     JDL 1/11/24
     """
 
     # Test a column that contains only numeric values
-    assert check_tbldf1.ColNumeric('id_index') == True
+    assert checkdf1.ColNumeric('id_index') == True
 
     # Reset errs to initialized condition and Change a value to a string
-    check_tbldf1.errs.ResetWarning()
-    check_tbldf1.tbl.df.loc['first_row', 'id_index'] = 'xyz'
+    checkdf1.errs.ResetWarning()
+    checkdf1.tbl.df.loc['first_row', 'id_index'] = 'xyz'
 
     # Test the column again
-    assert check_tbldf1.ColNumeric('id_index') == False
+    assert checkdf1.ColNumeric('id_index') == False
     exp = 'ERROR: Column must contain only non-null numeric values: id_index\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColValsInNumericRange(check_tbldf1, capfd):
+def test_CheckDataFrame_ColNumeric2(checkdf1, capfd):
     """
-    Check if values in a specified column are within a specified numeric range
+    Values in a specified column are non-blank and numeric (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColNumeric'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a column that contains only numeric values
+    assert checkdf1.ColNumeric('id_index', df=df_test) == True
+
+    # Reset errs to initialized condition and Change a value to a string
+    checkdf1.errs.ResetWarning()
+    df_test.loc['first_row', 'id_index'] = 'xyz'
+
+    # Test the column again
+    assert checkdf1.ColNumeric('id_index', df=df_test) == False
+    exp = 'custom_ColNumeric: id_index\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColValsInNumericRange1(checkdf1, capfd):
+    """
+    Column values (must be numeric) are within specified range
     JDL 8/26/24
     """
-
     # Test a column with limits that pass
-    assert check_tbldf1.ColValsInNumericRange('id_index', 1000, 1005) == True
+    assert checkdf1.ColValsInNumericRange('id_index', 1000, 1005) == True
 
     # Reset errs to initialized condition
-    check_tbldf1.errs.ResetWarning()
+    checkdf1.errs.ResetWarning()
 
     # Test the column again with limits that fail
-    assert check_tbldf1.ColValsInNumericRange('id_index', 1002, 1004) == False
+    assert checkdf1.ColValsInNumericRange('id_index', 1002, 1004) == False
     exp = 'ERROR: Column values must be within specified numeric range: id_index\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColContainsListVals(check_tbldf1, capfd):
+def test_CheckDataFrame_ColValsInNumericRange2(checkdf1, capfd):
     """
-    Check if values in a specified column are within a specified numeric range
-    JDL 8/26/24
+    Column values (must be numeric) are within specified range
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
     """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColValsInNumericRange'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
 
-    # Test a column with list that passes
-    assert check_tbldf1.ColContainsListVals('id_index', [1002, 1003]) == True
+    # Test a column with limits that pass e.g. 1000 to 1005 contains 1002 to 1004
+    assert checkdf1.ColValsInNumericRange('id_index', 1000, 1005, df=df_test) == True
 
     # Reset errs to initialized condition
-    check_tbldf1.errs.ResetWarning()
+    checkdf1.errs.ResetWarning()
 
     # Test the column again with limits that fail
-    assert check_tbldf1.ColContainsListVals('id_index', [1002, 1005]) == False
-    exp = 'ERROR: Column must contain specified list of values: \nMissing: 1005\n'
+    assert checkdf1.ColValsInNumericRange('id_index', 1002, 1004, df=df_test) == False
+    exp = 'custom_ColValsInNumericRange: id_index\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_ColContainsNodupsListVals(check_tbldf1, capfd):
+def test_CheckDataFrame_ColValsMatchRegex1(checkdf1, capfd):
     """
-    Check if the DataFrame column does not have duplicates of a list of values
+    Specific table value matches regex pattern
     JDL 8/26/24
     """
-
-    # Test a column with list that passes
-    assert check_tbldf1.ColContainsNodupsListVals('id_index', [1002, 1003]) == True
-
-    # Reset errs to initialized condition
-    check_tbldf1.errs.ResetWarning()
-
-    # Test the column again with values that fail
-    check_tbldf1.tbl.df.loc['first_row', 'id_index'] = 1002
-    assert check_tbldf1.ColContainsNodupsListVals('id_index', [1002, 1005]) == False
-    exp = 'ERROR: Specified list of column values must be unique (no duplicates): \nDuplicate: 1002\n'
-    check_printout(exp, capfd)
-
-def test_CheckTblDataFrame_TableLocMatchesRegex(check_tbldf1, capfd):
-    """
-    Check that a column value matches specified regex pattern
-    JDL 8/26/24
-    """
-
+    #Example regex pattern for x_y values
     str_regex = '^[a-zA-Z]+_[a-zA-Z]+$'
 
     #Reset the index to be able to use it for the check
-    check_tbldf1.tbl.df = check_tbldf1.tbl.df.reset_index(drop=False
-                                                          
-                                                          )
-    # Test a column with list that passes
-    assert check_tbldf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', str_regex) == True
+    checkdf1.tbl.df = checkdf1.tbl.df.reset_index(drop=False)
+
+    # Test a column that conforms to the regex pattern
+    assert checkdf1.ColValsMatchRegex('Row_Name', str_regex) == True
 
     # Reset errs to initialized condition and modify to failing value
-    check_tbldf1.errs.ResetWarning()
-    check_tbldf1.tbl.df.loc[0, 'Row_Name'] = 'first.row'
+    checkdf1.errs.ResetWarning()
+    checkdf1.tbl.df.loc[0, 'Row_Name'] = 'first.row'
 
     # Test the column again with values that fail
-    assert check_tbldf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', str_regex) == False
+    assert checkdf1.ColValsMatchRegex('Row_Name', str_regex) == False
+    exp = 'ERROR: Column values must match specified pattern: Row_Name\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColValsMatchRegex2(checkdf1, capfd):
+    """
+    Specific table value matches regex pattern
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColValsMatchRegex'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    #Example regex pattern for x_y values
+    str_regex = '^[a-zA-Z]+_[a-zA-Z]+$'
+
+    #Reset the index to be able to use it for the check
+    df_test = df_test.reset_index(drop=False)
+
+    # Test a column that conforms to the regex pattern
+    assert checkdf1.ColValsMatchRegex('Row_Name', str_regex,  df=df_test) == True
+
+    # Reset errs to initialized condition and modify to failing value
+    checkdf1.errs.ResetWarning()
+    df_test.loc[0, 'Row_Name'] = 'first.row'
+
+    # Test the column again with values that fail
+    assert checkdf1.ColValsMatchRegex('Row_Name', str_regex, df=df_test) == False
+    exp = 'custom_ColValsMatchRegex: Row_Name\n'
+    check_printout(exp, capfd)
+
+
+def test_CheckDataFrame_ColContainsListVals1(checkdf1, capfd):
+    """
+    Individual column contains a specified list of values
+    JDL 8/26/24
+    """
+    # Test a column with list that passes
+    assert checkdf1.ColContainsListVals('id_index', [1002, 1003]) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test the column again with limits that fail
+    assert checkdf1.ColContainsListVals('id_index', [1002, 1005]) == False
+    exp = 'ERROR: Column must contain specified list of values: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColContainsListVals2(checkdf1, capfd):
+    """
+    Individual column contains a specified list of values
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColContainsListVals'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a column with list that passes
+    assert checkdf1.ColContainsListVals('id_index', [1002, 1003], df=df_test) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test the column again with list of values not all in the column
+    assert checkdf1.ColContainsListVals('id_index', [1002, 1005], df=df_test) == False
+    exp = 'custom_ColContainsListVals: \nMissing: 1005\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColContainsNodupsListVals1(checkdf1, capfd):
+    """
+    Column does not have duplicates of a list of values
+    JDL 8/26/24
+    """
+    # Test a column with list that passes
+    assert checkdf1.ColContainsNodupsListVals('id_index', [1002, 1003]) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test the column again with values that fail
+    checkdf1.tbl.df.loc['first_row', 'id_index'] = 1002
+    assert checkdf1.ColContainsNodupsListVals('id_index', [1002, 1005]) == False
+    exp = 'ERROR: Specified list of column values must be unique (no duplicates): \nDuplicate: 1002\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_ColContainsNodupsListVals2(checkdf1, capfd):
+    """
+    Column does not have duplicates of a list of values
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColContainsNodupsListVals'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    # Test a column with list that passes
+    assert checkdf1.ColContainsNodupsListVals('id_index', [1002, 1003], df=df_test) == True
+
+    # Reset errs to initialized condition
+    checkdf1.errs.ResetWarning()
+
+    # Test the column again with values that fail
+    checkdf1.tbl.df.loc['first_row', 'id_index'] = 1002
+    assert checkdf1.ColContainsNodupsListVals('id_index', [1002, 1005], df=df_test) == False
+    exp = 'custom_ColContainsNodupsListVals: \nDuplicate: 1002\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_TableLocMatchesRegex1(checkdf1, capfd):
+    """
+    Specific table value matches regex pattern
+    JDL 8/26/24
+    """
+    #Example regex pattern for x_y values
+    str_regex = '^[a-zA-Z]+_[a-zA-Z]+$'
+
+    #Reset the index to be able to use it for the check
+    checkdf1.tbl.df = checkdf1.tbl.df.reset_index(drop=False)
+    # Test a column with list that passes
+    assert checkdf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', str_regex) == True
+
+    # Reset errs to initialized condition and modify to failing value
+    checkdf1.errs.ResetWarning()
+    checkdf1.tbl.df.loc[0, 'Row_Name'] = 'first.row'
+
+    # Test the column again with values that fail
+    assert checkdf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', str_regex) == False
     exp = 'ERROR: Specified table cell must match pattern: \nNon-match: first.row\n'
     check_printout(exp, capfd)
 
-def test_CheckTblDataFrame_NoDuplicateColVals(check_tbldf1, capfd):
+def test_CheckDataFrame_TableLocMatchesRegex2(checkdf1, capfd):
+    """
+    Specific table value matches regex pattern
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_TableLocMatchesRegex'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    #Example regex pattern for x_y values
+    str_regex = '^[a-zA-Z]+_[a-zA-Z]+$'
+
+    #Reset the index to be able to use it for the check
+    df_test = df_test.reset_index(drop=False)
+    # Test a column with list that passes
+    assert checkdf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', \
+                                             str_regex, df=df_test) == True
+
+    # Reset errs to initialized condition and modify to failing value
+    checkdf1.errs.ResetWarning()
+    df_test.loc[0, 'Row_Name'] = 'first.row'
+
+    # Test the column again with values that fail
+    assert checkdf1.TableLocMatchesRegex('id_index', 1001, 'Row_Name', \
+                                             str_regex, df=df_test) == False
+    exp = 'custom_TableLocMatchesRegex: \nNon-match: first.row\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_NoDuplicateColVals1(checkdf1, capfd):
     """
     Check if values in a specified column are within a specified numeric range
     JDL 8/26/24
     """
-
     # Test a column with list that passes
-    assert check_tbldf1.NoDuplicateColVals('id_index') == True
+    assert checkdf1.NoDuplicateColVals('id_index') == True
 
     # Reset errs to initialized condition
-    check_tbldf1.errs.ResetWarning()
-    check_tbldf1.tbl.df.loc[0, 'id_index'] = 1002
+    checkdf1.errs.ResetWarning()
+    checkdf1.tbl.df.loc[0, 'id_index'] = 1002
 
     # Test the column again with limits that fail
-    assert check_tbldf1.NoDuplicateColVals('id_index') == False
+    assert checkdf1.NoDuplicateColVals('id_index') == False
     exp = 'ERROR: DataFrame Column values must be unique: id_index\n'
     check_printout(exp, capfd)
 
-def check_printout(expected, capfd):
+def test_CheckDataFrame_NoDuplicateColVals2(checkdf1, capfd):
     """
-    Check that the printed output matches the expected output
-    JDL 1/11/24
+    Check if values in a specified column are within a specified numeric range
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
     """
-    captured = capfd.readouterr()
-    #if captured.out != expected:
-    #    logging.debug("\ncaptured.out\n")
-    #    logging.debug(captured.out)
-    #    logging.debug('\n\nexpected\n')
-    #    logging.debug(expected)
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_NoDuplicateColVals'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
 
-    assert captured.out == expected
-    
-"""
-=========================================================================
-CheckDataFrame preflight tests
-(Class takes df as input instead of tbl and tbl.df with CheckTblDataFrame)
-=========================================================================
-"""
+    # Test a column that does not have duplicate values
+    assert checkdf1.NoDuplicateColVals('id_index', df=df_test) == True
 
-def test_CheckDataFrame_NoDuplicateCols(check_df2, capfd):
-    """
-    Check if the DataFrame self.df does not have duplicate column names
-    JDL 1/11/24
-    """
-    # Test a case where there are no duplicate columns
-    assert check_df2.NoDuplicateCols() == True
+    # Reset errs to initialized condition and modify to create duplicate val
+    checkdf1.errs.ResetWarning()
+    df_test.loc[0, 'id_index'] = 1002
 
-    # Modify check_df2.df to replace column 1004 with 1003 to create a duplicate
-    check_df2.df.rename(columns={1004: 1003}, inplace=True)
-
-
-    # Reset errs to initialized condition and Test a case where there are duplicate columns
-    check_df2.errs.ResetWarning()
-    assert check_df2.NoDuplicateCols() == False
-    exp = 'ERROR: DataFrame cannot have duplicate columns and names cannot end in ".x" where x is a digit: \nDuplicate columns: 1003\n'
-    check_printout(exp, capfd)
-
-def test_CheckDataFrame_ColumnsContainListVals(check_df2, capfd):
-    """
-    Check if the DataFrame columns contain a specified list of values
-    JDL 1/11/24
-    """
-    # Test a list of values that are all in the columns
-    assert check_df2.ColumnsContainListVals([1002, 1003]) == True
-
-    # Reset errs to initialized condition and Test a list of values that are not all in the columns
-    check_df2.errs.ResetWarning()
-    assert check_df2.ColumnsContainListVals([1002, 1003, 1005]) == False
-    exp = 'ERROR: DataFrame Columns must contain all specified values: \nMissing: 1005\n'
-    check_printout(exp, capfd)
-
-def test_CheckDataFrame_IndexContainsListVals(check_df2, capfd):
-    """
-    Check if the DataFrame index contains a specified list of values
-    JDL 1/11/24
-    """
-    # Test a list of values that are all in the index
-    assert check_df2.IndexContainsListVals([1002, 1003]) == True
-
-    # Reset errs to initialized condition and test list of values that are not all in the index
-    check_df2.errs.ResetWarning()
-    assert check_df2.IndexContainsListVals([1002, 1003, 1005]) == False
-    exp = 'ERROR: Index must contain all specified values: \nMissing: 1005\n'
-    check_printout(exp, capfd)
-    
-def test_CheckDataFrame_ColPopulated(check_df1, capfd):
-    """
-    Check if all values in a specified column are non-null
-    JDL 1/11/24
-    """
-    # Test a column that contains only non-null values
-    assert check_df1.ColPopulated('id_index') == True
-
-    # Reset errs to initialized condition and Change a value to NaN
-    check_df1.errs.ResetWarning()
-
-    # Test the Select column which contains blanks
-    assert check_df1.ColPopulated('Select') == False
-    exp = 'ERROR: All column values must be non-null: Select\n'
-    check_printout(exp, capfd)
-    
-
-def test_CheckDataFrame_ColAllNumeric(check_df1, capfd):
-    """
-    Check if values in a specified column are non-blank and numeric
-    JDL 1/11/24
-    """
-
-    # Test a column that contains only numeric values
-    assert check_df1.ColAllNumeric('id_index') == True
-
-    # Reset errs to initialized condition and Change a value to a string
-    check_df1.errs.ResetWarning()
-    check_df1.df.loc['first_row', 'id_index'] = 'xyz'
-
-    # Test the column again
-    assert check_df1.ColAllNumeric('id_index') == False
-    exp = 'ERROR: Column must contain only non-null numeric values: id_index\n'
-    check_printout(exp, capfd)
-
-def test_CheckDataFrame_ContainsRequiredCols(check_df1, capfd):
-    """
-    Check if .df contains a specified list of column names
-    JDL 1/11/24
-    """
-    # Test a list of columns that are in the DataFrame
-    lst = list(check_df1.df.columns)
-    assert check_df1.ContainsRequiredCols(lst) == True
-
-    # Reset errs to initialized condition
-    check_df1.errs.ResetWarning()
-
-    # Test a list of columns where at least one is not in the DataFrame
-    lst = lst + ['non_existent_column']
-    assert check_df1.ContainsRequiredCols(lst) == False
-    exp = 'ERROR: Required column not present: non_existent_column\n'
-    check_printout(exp, capfd)
-
-    
-def test_CheckDataFrame_ColNonBlank(check_df1, capfd):
-    """
-    Test that ColNonBlank flags if specified column contains any non-blank values
-    JDL 1/11/24
-    """
-    # Test a column that contains non-blank values
-    assert check_df1.ColNonBlank('Select') == True
-
-    # Reset errs to initialized condition
-    check_df1.errs.ResetWarning()
-
-    # Test a column that contains only blank values and check error message printout
-    check_df1.df['Select_blank'] = np.nan
-    assert check_df1.ColNonBlank('Select_blank') == False
-    exp = 'ERROR: DataFrame column cannot be blank: Select_blank\n'
+    # Test the column again with limits that fail
+    assert checkdf1.NoDuplicateColVals('id_index', df=df_test) == False
+    exp = 'custom_NoDuplicateColVals: id_index\n'
     check_printout(exp, capfd)
 
 def check_printout(expected, capfd):
@@ -614,7 +778,6 @@ def check_printout(expected, capfd):
     #    logging.debug(captured.out)
     #    logging.debug('\n\nexpected\n')
     #    logging.debug(expected)
-
     assert captured.out == expected
     
 """
