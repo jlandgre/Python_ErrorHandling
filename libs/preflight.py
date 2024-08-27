@@ -1,4 +1,6 @@
 #Version 3/1/24 - Add CheckTblDataFrame.ColumnValsMatchRegex method
+#Version 8/26/24 - Add additional methods (from client code Version 6/24/24)
+
 import pandas as pd
 import os
 from openpyxl import load_workbook
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 =========================================================================
 This class checks a projfiles.Table instance's .df structure and data  
 values based on specified Table attributes such as a list of required
-columns and the .df's default index - Version 2/26/24
+columns and the .df's default index
 =========================================================================
 """
 class CheckTblDataFrame:
@@ -108,19 +110,20 @@ class CheckTblDataFrame:
     def ColPopulated(self, col_name, df=None):
         """
         All values in a specified column are non-null (True if so)
-        JDL 2/16/24
+        JDL 2/16/24; Modified 8/26/24 switch to check df instead of self.df
         """
         #Enable custom error codes
         if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
+        if df is None: df = self.tbl.df
 
         #Report blank values in specified column
-        if not self.tbl.df[col_name].isna().any(): return True
+        if not df[col_name].isna().any(): return True
         if self.errs.is_fail(True, 4, self.errs.Locn, col_name): self.errs.RecordErr()
         return False
 
     def ColumnsContainListVals(self, list_vals):
         """
-        Check if the DataFrame columns contain a specified list of values
+        DataFrame columns contain a specified list of values
         JDL 2/16/24
         """
         #Enable custom error codes
@@ -136,7 +139,7 @@ class CheckTblDataFrame:
     
     def IndexContainsListVals(self, list_vals):
         """
-        Check if the DataFrame index contains a specified list of values
+        CDataFrame index contains a specified list of values
         JDL 1/11/24
         """
         #Enable custom error codes
@@ -155,10 +158,6 @@ class CheckTblDataFrame:
         .tbl.df list of tbl.nonblank_cols all contain at least one non-blank value (True if so)
         JDL 2/16/24
         """
-        print('\n\n')
-        print(self.tbl.df)
-        print('\n\n')
-
         for col in self.tbl.nonblank_cols:
             print('\ncol:', col)
             if not self.ColNonBlank(col):
@@ -241,13 +240,14 @@ class CheckTblDataFrame:
     def ColValsMatchRegex(self, col_name, str_regex, IgnoreCase=False):
         """
         Check that column values match specified regex pattern
-        JDL 3/1/24
+        JDL 3/1/24; Modified 8/26/24 to validate
         """
+        #Enable custom error codes
+        if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
 
         # Check if all column values match the regex
         fn_lambda = lambda x: bool(re.match(str_regex, str(x)))
         if IgnoreCase: fn_lambda = lambda x: bool(re.match(str_regex, str(x), re.IGNORECASE))
-            
         is_match =  self.tbl.df[col_name].apply(fn_lambda).all()
 
         if self.errs.is_fail((not is_match), 10, self.errs.Locn, str(col_name)):
@@ -255,16 +255,91 @@ class CheckTblDataFrame:
             return False
         return True
 
+    def ColContainsListVals(self, col_name, list_vals):
+        """
+        Check if individual column contains a specified list of values
+        JDL 6/24/24
+        """
+        #Enable custom error codes
+        if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
+
+        # Loop over list_vals and check if in DataFrame index
+        for val in list_vals:
+            if val not in self.tbl.df[col_name].values:
+                ErrParam = '\nMissing: ' + str(val)
+                if self.errs.is_fail(True, 11, self.errs.Locn, ErrParam): self.errs.RecordErr()
+                return False
+        return True
+
+    def ColContainsNodupsListVals(self, col_name, list_vals):
+        """
+        Check if the DataFrame column does not have duplicates of a list of values
+        JDL 6/24/24
+        """
+        #Enable custom error codes
+        if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
+
+        # Loop over list_vals and check if in DataFrame index
+        for val in list_vals:
+            fil = self.tbl.df[col_name] == val
+            if self.tbl.df.loc[fil, col_name].index.size > 1:
+                ErrParam = '\nDuplicate: ' + str(val)
+                if self.errs.is_fail(True, 12, self.errs.Locn, ErrParam): self.errs.RecordErr()
+                return False
+        return True
+
+    def TableLocMatchesRegex(self, col_name1, val, col_name2, str_regex, IgnoreCase=False):
+        """
+        Check that a column value matches specified regex pattern
+        JDL 6/24/24
+        """
+        # Enable custom error codes
+        if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
+
+        # Filter DataFrame based on col_name1 and val to lookup col_name2 value
+        fil = self.tbl.df[col_name1] == val
+        val_loc = self.tbl.df.loc[fil, col_name2].values[0]
+
+        # Compile regex with IGNORECASE flag if IgnoreCase is True
+        if IgnoreCase:
+            pattern = re.compile(str_regex, re.IGNORECASE)
+        else:
+            pattern = re.compile(str_regex)
+
+        # Check if val_loc matches the regex pattern
+        is_match = bool(pattern.match(val_loc))
+
+        if self.errs.is_fail((not is_match), 13, self.errs.Locn):
+            self.errs.ErrParam = '\nNon-match: ' + str(val_loc)
+            self.errs.RecordErr()
+            return False
+        return True
+
+    def NoDuplicateColVals(self, col, df=None):
+        """
+        Column does not have duplicate values in specified col (True if so)
+        JDL 1/26/24
+        """
+        #Enable custom error codes and set df with precedence to arg df if supplied
+        if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
+        if df is None: df = self.tbl.df
+
+        if df[col].is_unique: return True
+        if self.errs.is_fail(True, 14, self.errs.Locn, col): self.errs.RecordErr()
+        return False
+
+
 """
 ================================================================================
-Legacy CheckDataFrame class for checking a DataFrame's structure and data
+CheckDataFrame class for checking a DataFrame's structure and data (without use
+of Table class instance as input)
 ================================================================================
 """
 class CheckDataFrame:
     def __init__(self, df, errs, IsCustomErrCodes=False):
         """
         Initialize CheckDataFrame with df and errs ErrorHandle instance as attributes.
-        JDL 1/11/24
+        JDL 1/11/24; Error codes renumbered 8/26/24
         """
         self.df = df
         self.errs = errs
@@ -276,7 +351,7 @@ class CheckDataFrame:
     def ContainsRequiredCols(self, cols_req, df=None):
         """
         Check if .df contains a specified list of column names (True if so)
-        JDL 1/11/24
+        JDL 1/11/24; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         Locn = self.errs.Locn if self.IsCustomErrCodes else util.current_fn()
@@ -284,7 +359,7 @@ class CheckDataFrame:
 
         #Check df has all required columns
         for col in cols_req:
-            if self.errs.is_fail((not col in df.columns), 6, Locn, col):
+            if self.errs.is_fail((not col in df.columns), 1, Locn, col):
                 self.errs.RecordErr()
                 return False
         return True
@@ -292,7 +367,7 @@ class CheckDataFrame:
     def ColValsInNumericRange(self, col, llim=None, ulim=None):
         """
         Check that column values (must be numeric) are within specified range
-        JDL 1/30/24
+        JDL 1/30/24; Error codes renumbered 8/26/24
         """
 
         #Enable custom error codes and set df with precedence to arg df if supplied
@@ -316,7 +391,7 @@ class CheckDataFrame:
     def NoDuplicateIndices(self):
         """
         Check if self.df has unique index values (True if so)
-        JDL 1/30/24
+        JDL 1/30/24; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -329,13 +404,13 @@ class CheckDataFrame:
         # Report error if duplicate index values found
         duplicates = index[index.duplicated()].unique()
         ErrParam = "\nDuplicate indices: " + ', '.join(map(str, duplicates))
-        if self.errs.is_fail(True, 10, self.errs.Locn, ErrParam): self.errs.RecordErr()
+        if self.errs.is_fail(True, 3, self.errs.Locn, ErrParam): self.errs.RecordErr()
         return False
     
     def NoDuplicateCols(self):
         """
         Check self.df has unique column names (True if so)
-        JDL 1/11/24
+        JDL 1/11/24; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -346,14 +421,14 @@ class CheckDataFrame:
         if not cols.is_unique: 
             duplicates = cols[cols.duplicated()].unique()
             ErrParam = '\nDuplicate columns: ' + ', '.join(map(str, duplicates))
-            if self.errs.is_fail(True, 1, self.errs.Locn, ErrParam): self.errs.RecordErr()
+            if self.errs.is_fail(True, 2, self.errs.Locn, ErrParam): self.errs.RecordErr()
             return False
         else:
             # Check if any column name has an extension added by pandas
             for col in cols:
                 if '.' in str(col) and str(col).rsplit('.', 1)[1].isdigit():
                     ErrParam = '\nDuplicate columns: ' + col.split('.')[0]
-                    if self.errs.is_fail(True, 1, self.errs.Locn, ErrParam): self.errs.RecordErr()
+                    if self.errs.is_fail(True, 2, self.errs.Locn, ErrParam): self.errs.RecordErr()
                     return False
                 
             # No duplicates detected, so return True
@@ -362,21 +437,20 @@ class CheckDataFrame:
     def NoDuplicateColVals(self, col, df=None):
         """
         Check if DataFrame self.df does not have duplicate values in specified col (True if so)
-        JDL 1/26/24
+        JDL 1/26/24; Error codes renumbered 8/26/24
         """
-
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
         if df is None: df = self.df
 
         if df[col].is_unique: return True
-        if self.errs.is_fail(True, 8, self.errs.Locn, col): self.errs.RecordErr()
+        if self.errs.is_fail(True, 12, self.errs.Locn, col): self.errs.RecordErr()
         return False
 
     def ColumnsContainListVals(self, list_vals, df=None):
         """
         Check if the DataFrame columns contain a specified list of values
-        JDL 1/11/24; Modified 1/29/24 to add df arg
+        JDL 1/11/24; Modified 1/29/24 to add df arg; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -386,14 +460,14 @@ class CheckDataFrame:
         for val in list_vals:
             if val not in df.columns:
                 ErrParam = '\nMissing: ' + str(val)
-                if self.errs.is_fail(True, 2, self.errs.Locn, ErrParam): self.errs.RecordErr()
+                if self.errs.is_fail(True, 5, self.errs.Locn, ErrParam): self.errs.RecordErr()
                 return False
         return True
 
     def IndexContainsListVals(self, list_vals, df=None):
         """
         Check if the DataFrame index contains a specified list of values
-        JDL 1/11/24
+        JDL 1/11/24; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -403,14 +477,14 @@ class CheckDataFrame:
         for val in list_vals:
             if val not in df.index:
                 ErrParam = '\nMissing: ' + str(val)
-                if self.errs.is_fail(True, 3, self.errs.Locn, ErrParam): self.errs.RecordErr()
+                if self.errs.is_fail(True, 6, self.errs.Locn, ErrParam): self.errs.RecordErr()
                 return False
         return True
     
-    def ColAllPopulated(self, col_name, df=None):
+    def ColPopulated(self, col_name, df=None):
         """
         Check if all values in a specified column are non-null (True if so)
-        JDL 1/11/24; Modified 1/26/24 to add df arg
+        JDL 1/11/24; Modified 1/26/24 to add df arg; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -424,7 +498,7 @@ class CheckDataFrame:
     def ColAllNumeric(self, col_name, df=None):
         """
         Check if values in a specified column are non-blank and numeric (True if so)
-        JDL 1/11/24; Modified 1/26/24 to add df arg
+        JDL 1/11/24; Modified 1/26/24 to add df arg; Error codes renumbered 8/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
@@ -433,7 +507,7 @@ class CheckDataFrame:
         # Convert the column to numeric, coercing non-numeric values to NaN
         col_numeric = pd.to_numeric(df[col_name], errors='coerce')
         is_col_all_numeric = not col_numeric.isna().any()
-        if self.errs.is_fail((not is_col_all_numeric), 5, self.errs.Locn, str(col_name)):
+        if self.errs.is_fail((not is_col_all_numeric), 8, self.errs.Locn, str(col_name)):
             self.errs.RecordErr()
             return False
         return True
@@ -441,7 +515,7 @@ class CheckDataFrame:
     def ColNonBlank(self, col_name):
         """
         Check if specified column contains any non-blank values (True if so)
-        JDL 1/11/24
+        JDL 1/11/24; Error codes renumbered 8/26/24
         """
         #Enable custom error codes
         if not self.IsCustomErrCodes: self.errs.Locn = util.current_fn()
