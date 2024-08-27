@@ -319,6 +319,55 @@ def test_CheckDataFrame_NoDuplicateIndices2(checkdf2, capfd):
     exp = 'custom_NoDuplicateIndices: \nDuplicate indices: 1002\n'
     check_printout(exp, capfd)
 
+def test_CheckDataFrame_LstColsPopulated1(checkdf1, capfd):
+    """
+    .tbl.df list of tbl.populated_cols populated with non-blank values (True if so)
+    JDL 8/27/24
+    """
+    #Set tbl attribute list of columns that must be populated
+    checkdf1.tbl.populated_cols = ['id_index', 'Color']
+
+    #Test list with columns that are all populated
+    assert checkdf1.LstColsPopulated() == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf1.errs.ResetWarning()
+
+    #Set tbl attribute list of columns that must be populated
+    checkdf1.tbl.populated_cols = ['Select', 'Color']
+
+    # Test list with column that is not all populated
+    assert checkdf1.LstColsPopulated() == False
+    exp = 'ERROR: All column values must be non-null: Select\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsPopulated2(checkdf1, capfd):
+    """
+    .tbl.df list of tbl.populated_cols populated with non-blank values (True if so)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColPopulated'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    #Set list of columns that must be populated
+    lst = ['id_index', 'Color']
+
+    #Test list with columns that are all populated
+    assert checkdf1.LstColsPopulated(df=df_test, lst_cols=lst) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf1.errs.ResetWarning()
+
+    #Set tbl attribute list of columns that must be populated
+    lst = ['Select', 'Color']
+
+    # Test list with column that is not all populated
+    assert checkdf1.LstColsPopulated(df=df_test, lst_cols=lst) == False
+    exp = 'custom_ColPopulated: Select\n'
+    check_printout(exp, capfd)
+
 def test_CheckDataFrame_ColPopulated1(checkdf1, capfd):
     """
     All values in a specified column are non-null (True if so)
@@ -424,7 +473,59 @@ def test_CheckDataFrame_IndexContainsListVals2(checkdf2, capfd):
     assert checkdf2.IndexContainsListVals([1002, 1003, 1005], df=df_test) == False
     exp = 'custom_IndexContainsListVals: \nMissing: 1005\n'
     check_printout(exp, capfd)
-    
+
+def test_CheckDataFrame_LstColsAllNonBlank1(checkdf1, capfd):
+    """
+    .tbl.df list of tbl.nonblank_cols all contain at least one non-blank value (True if so)
+    JDL 8/27/24
+    """
+    #Set tbl attribute list of columns that must be populated
+    checkdf1.tbl.nonblank_cols = ['id_index', 'Color']
+
+    #Test list with columns that are all populated
+    assert checkdf1.LstColsAllNonBlank() == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf1.errs.ResetWarning()
+
+    #Set tbl attribute list of columns that must be populated
+    checkdf1.tbl.df['Select_blank'] = np.nan
+    checkdf1.tbl.nonblank_cols = ['Select_blank', 'Color']
+
+    # Test list with column that is not all populated
+    assert checkdf1.LstColsAllNonBlank() == False
+    exp = 'ERROR: DataFrame column cannot be blank: Select_blank\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsAllNonBlank2(checkdf1, capfd):
+    """
+    .tbl.df list of tbl.nonblank_cols all contain at least one non-blank value (True if so)
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf1.errs.Locn = 'custom_ColNonBlank'
+    checkdf1.IsCustomCodes = True
+    df_test = checkdf1.tbl.df
+
+    #Set tbl attribute list of columns that must be populated
+    lst = ['id_index', 'Color']
+
+    #Test list with columns that are all populated
+    assert checkdf1.LstColsAllNonBlank(df=df_test, lst_cols=lst) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf1.errs.ResetWarning()
+
+    #Set tbl attribute list of columns that must be populated
+    checkdf1.tbl.df['Select_blank'] = np.nan
+    lst = ['Select_blank', 'Color']
+
+    # Test list with column that is not all populated
+    assert checkdf1.LstColsAllNonBlank(df=df_test, lst_cols=lst) == False
+    exp = 'custom_ColNonBlank: Select_blank\n'
+    check_printout(exp, capfd)
+
 def test_CheckDataFrame_ColNonBlank1(checkdf1, capfd):
     """
     Specified column contains no non-blank values (True if so)
@@ -463,6 +564,55 @@ def test_CheckDataFrame_ColNonBlank2(checkdf1, capfd):
     df_test['Select_blank'] = np.nan
     assert checkdf1.ColNonBlank('Select_blank', df=df_test) == False
     exp = 'custom_ColNonBlank: Select_blank\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsAllNumeric1(checkdf2, capfd):
+    """
+    .tbl list of .numeric_cols all numeric values (True if so)
+    JDL 8/27/24
+    """
+    #Set tbl attribute list of columns that must numeric values
+    checkdf2.tbl.numeric_cols = [1002, 1003]
+
+    #Test list with columns that are all populated
+    assert checkdf2.LstColsAllNumeric() == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf2.errs.ResetWarning()
+
+    #Change a value to a string
+    checkdf2.tbl.df.loc[1004, 1002] = 'xyz'
+
+    # Test list with column that is not all populated
+    assert checkdf2.LstColsAllNumeric() == False
+    exp = 'ERROR: Column must contain only non-null numeric values: 1002\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsAllNumeric2(checkdf2, capfd):
+    """
+    .tbl list of .numeric_cols all numeric values (True if so)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_ColNumeric'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    #Set tbl attribute list of columns that must be numeric values
+    lst = [1002, 1003]
+
+    #Test list with columns that are all populated
+    assert checkdf2.LstColsAllNumeric(df=df_test, lst_cols=lst) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf2.errs.ResetWarning()
+
+    #Change a value to a string
+    df_test.loc[1004, 1002] = 'xyz'
+
+    # Test list with column that is not all populated
+    assert checkdf2.LstColsAllNumeric(df=df_test, lst_cols=lst) == False
+    exp = 'custom_ColNumeric: 1002\n'
     check_printout(exp, capfd)
 
 def test_CheckDataFrame_ColNumeric1(checkdf1, capfd):
@@ -504,6 +654,50 @@ def test_CheckDataFrame_ColNumeric2(checkdf1, capfd):
     # Test the column again
     assert checkdf1.ColNumeric('id_index', df=df_test) == False
     exp = 'custom_ColNumeric: id_index\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsAllInNumericRange1(checkdf2, capfd):
+    """
+    tbls.tbl1.df list of columns' values are within a specified numeric range
+    JDL 8/27/24
+    """
+    #Set tbl attribute list of columns that must numeric values
+    lst = [1002, 1003]
+
+    #Test list with columns that whose values are all within the range
+    assert checkdf2.LstColsAllInNumericRange(lst, 0., 0.1) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf2.errs.ResetWarning()
+
+    # Test list with column that has value above ulim
+    assert checkdf2.LstColsAllInNumericRange(lst, 0., 0.085) == False
+    exp = 'ERROR: Column values must be within specified numeric range: 1003\n'
+    check_printout(exp, capfd)
+
+def test_CheckDataFrame_LstColsAllInNumericRange2(checkdf2, capfd):
+    """
+    tbls.tbl1.df list of columns' values are within a specified numeric range
+    (Custom error codes; check df instead of tbl.df)
+    JDL 8/27/24
+    """
+    #Set custom error codes flag, lookup Locn, and df
+    checkdf2.errs.Locn = 'custom_ColValsInNumericRange'
+    checkdf2.IsCustomCodes = True
+    df_test = checkdf2.tbl.df
+
+    #Set tbl attribute list of columns that must numeric values
+    lst = [1002, 1003]
+
+    #Test list with columns that whose values are all within the range
+    assert checkdf2.LstColsAllInNumericRange(lst, 0., 0.1, df=df_test) == True
+
+    # Reset errs to initialized condition and Change a value to NaN
+    checkdf2.errs.ResetWarning()
+
+    # Test list with column that has value above ulim
+    assert checkdf2.LstColsAllInNumericRange(lst, 0., 0.085, df=df_test) == False
+    exp = 'custom_ColValsInNumericRange: 1003\n'
     check_printout(exp, capfd)
 
 def test_CheckDataFrame_ColValsInNumericRange1(checkdf1, capfd):

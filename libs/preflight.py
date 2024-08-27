@@ -41,7 +41,6 @@ class CheckDataFrame:
         JDL 2/16/24; Modified 8/27/24 to add df arg
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
-        #Locn = self.errs.Locn if self.IsCustomCodes else util.current_fn()
         if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
         if df is None: df = self.tbl.df
 
@@ -64,9 +63,8 @@ class CheckDataFrame:
         if not self.IsCustomCodes: self.errs.Locn = util.current_fn()
         if df is None: df = self.tbl.df
 
-        cols = df.columns
-        
         #Check if there are true duplicate column names
+        cols = df.columns
         if not cols.is_unique: 
             duplicates = cols[cols.duplicated()].unique()
             ErrParam = '\nDuplicate columns: ' + ', '.join(map(str, duplicates))
@@ -104,12 +102,15 @@ class CheckDataFrame:
         if self.errs.is_fail(True, 3, self.errs.Locn, ErrParam): self.errs.RecordErr()
         return False
 
-    def LstColsPopulated(self, df=None):
+    def LstColsPopulated(self, df=None, lst_cols=None):
         """
         .tbl.df list of tbl.populated_cols populated with non-blank values (True if so)
-        JDL 2/16/24; Modified 8/27/24 to add df arg
+        JDL 2/16/24; Modified 8/27/24 to add df and lst_cols args
         """
-        for col in self.tbl.populated_cols:
+        #list to check is tbl attribute unless overridden by args
+        if lst_cols is None: lst_cols = self.tbl.populated_cols
+
+        for col in lst_cols:
             if not self.ColPopulated(col, df=df): return False
         return True
 
@@ -161,13 +162,16 @@ class CheckDataFrame:
                 return False
         return True
 
-    def LstColsAllNonBlank(self, df=None):
+    def LstColsAllNonBlank(self, df=None, lst_cols=None):
         """
         .tbl.df list of tbl.nonblank_cols all contain at least one non-blank value (True if so)
         JDL 2/16/24; Modified 8/27/24 to add df arg
         """
-        for col in self.tbl.nonblank_cols: 
-            if not self.ColNonBlank(col, df=df): return False
+        #list to check is tbl attribute unless overridden by args
+        if lst_cols is None: lst_cols = self.tbl.nonblank_cols
+
+        for col in lst_cols: 
+            if not self.ColNonBlank(col, df=df,): return False
         return True
 
     def ColNonBlank(self, col_name, df=None):
@@ -186,12 +190,15 @@ class CheckDataFrame:
             return False
         return True
 
-    def LstColsAllNumeric(self, df=None):
+    def LstColsAllNumeric(self, df=None, lst_cols=None):
         """
         .tbl list of .numeric_cols all numeric values (True if so)
         JDL 2/16/24; Modified 8/27/24 to add df arg
         """
-        for col in self.tbl.numeric_cols:
+        #list to check is tbl attribute unless overridden by args
+        if lst_cols is None: lst_cols = self.tbl.numeric_cols
+
+        for col in lst_cols:
             if not self.ColNumeric(col, df=df): return False
         return True
 

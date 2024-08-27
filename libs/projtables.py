@@ -83,6 +83,7 @@ class Table():
     """
     Attributes for a data table including import instructions. Table instances
     are attributes of ProjectTables Class to allow iteration over tables
+    JDL Modified 8/27/24 add _cols list attribute initialization
     """
     def __init__(self, sPF, name, sht, ColNameIdx, name_lastcol=None):
                 
@@ -102,6 +103,8 @@ class Table():
 
         self.required_cols = []
         self.numeric_cols = []
+        self.populated_cols = []
+        self.nonblank_cols = []
 
     def ResetDefaultIndex(self, IsDrop=True):
         """
