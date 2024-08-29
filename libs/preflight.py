@@ -13,12 +13,20 @@ from error_handling import ErrorHandle
 #Initialize logging in case needed based on errs IsLog attribute
 import logging
 logger = logging.getLogger(__name__)
-
 """
 =========================================================================
-This class checks a projfiles.Table instance's .df structure and data  
-values based on specified Table attributes such as a list of required
-columns and the .df's default index
+This class checks a projfiles.tbl.df (Table class df attribute) structure   
+and datavalues based on specified Table attributes such as a list of 
+required columns and the .df's default index
+
+In alternate usage, df can be passed as an argument directly -- bypassing
+use of the Table class to check df instead of self.tbl.df
+
+The class relies on default or custom error codes in ErrorCodes.xlsx
+whose df is an attribute of the .errs ErrorHandle instance. If 
+.IsCustomCodes is True, the .errs.Locn attribute is used to look up a
+custom error code and message in the ErrorCodes.xlsx file. Otherwise, 
+the preflight.py method name is used to look up the default error code..
 =========================================================================
 """
 class CheckDataFrame:
@@ -71,7 +79,7 @@ class CheckDataFrame:
             if self.errs.is_fail(True, 2, self.errs.Locn, ErrParam): self.errs.RecordErr()
             return False
         
-        #Look for modified names from pd.read_excel (e.g. .1, .2, etc.)
+        #Look for Pandas modified names from pd.read_excel (e.g. .1, .2, etc.)
         else:
             #Check if any column has Pandas-added extension (.1, .2, etc.)
             for col in cols:
@@ -337,7 +345,7 @@ class CheckDataFrame:
 
     def NoDuplicateColVals(self, col, df=None):
         """
-        Column does not have duplicate values in specified col (True if so)
+        Specified column does not have duplicate values (True if so)
         JDL 1/26/24
         """
         #Enable custom error codes and set df with precedence to arg df if supplied
@@ -347,7 +355,13 @@ class CheckDataFrame:
         if df[col].is_unique: return True
         if self.errs.is_fail(True, 14, self.errs.Locn, col): self.errs.RecordErr()
         return False
-
+"""
+=========================================================================
+This class checks a specified list of Excel files (path+filename) for
+existence and validity. For each file, it can also check that a specified
+list of sheets exist within the Excel workbook.
+=========================================================================
+"""
 class CheckExcelFiles:
     def __init__(self, lst_files, lst_shts, errs, IsErrsAsWarnings=True, IsPrint=False):
         """
