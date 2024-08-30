@@ -42,17 +42,19 @@ The function below from preflight.py gives an example of trapping an error if a 
             return False
         return True
 ```
-The ErrorHandle.is_fail() function checks the specified, Boolean argument and sets a local code, 1, and an optional string parameter to report with the message listed in ErrorCodes.xlsx. The .RecordErr() method looks up a base error code for errs.Locn and adds the local, 1, code to the base to look up the message to report. This lookup approach means that the local error codes within the code can be simple integers --counting up from 1 rather than needing to be globally unique within the project. That makes administration easier.
+The ErrorHandle.is_fail() function is a single line way to check for an error condition and set error handling parameters in case of an error. In this example, if its first, Boolean argument evaluates as True (e.g. failing), it sets a local code, .errs.iCodeLocal, to 1 (second is_fail argument). Since the example above detects the error with an if statement, the first argument can have the dummy value True in this case. The third argument sets the error location for lookup in the error message table. Here it is preset to point to messages related to the CheckExcelFiles class. The fourth .is_fail argument is an optional string parameter to report with the message listed in ErrorCodes.xlsx. 
+
+The .RecordErr() method looks up a base error code for errs.Locn and adds the local, 1, code to the base to look up the message to report. This lookup approach means that the local error codes within the code can be simple integers that are easy to assign when developing code --counting up from 1 rather than needing to be globally unique within the project. That makes administration easier.
 
 The errs.Locn argument is a pre-specified location that is the lookup key for the message. If this were not pre-specified, errs.Locn can be replaced with "inspect.currentframe().f_code.co_name" to get the current function name.
 
 Using .is_fail() minimizes code clutter to check for an error. In the example, there is a multiline "if block," but, if the error condition will be reported later at the top of a stack of nested functions, the check can be single line and simply return if an error is detected. In this case, the .is_fail() call can conditionally return to the calling function.
 
-For the above example, if the .is_fail() Boolean check (first argument) returns True, the errs.RecordErr()  will report the following message and either halt execution or continue depending on the value of an errs.IswWarning Boolean flag.
+In the above example, if the if statement is True (e.g. the file does not exist), errs.RecordErr() will report the following message and either halt execution or continue depending on the value of an errs.IswWarning Boolean flag.
 ```
 ERROR: Specified file not found: 
 path_tofile\filename.ext
 ```
 
 J.D. Landgrebe, Data Delve LLC
-January 2024; Updated February 19, 2024
+January 2024; Updated August 30, 2024
