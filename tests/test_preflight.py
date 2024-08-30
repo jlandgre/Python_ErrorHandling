@@ -957,11 +957,11 @@ def check_printout(expected, capfd):
 =========================================================================
 Tests of CheckExcelFiles.CheckFilesProcedure() methods
 
-These tests use the mockup Excel file, test_mockup.xlsx and a dummy
-non-Excel file, dummy_file.docx in the tests directory. The tests use
-a virtual import of df_errs_test to construct the error code df that
-would typically be imported from ErrorCodes.xlsx. It would reside in
-the libs subfolder with error_handling.py and preflight.py files.
+These tests use the mockup Excel file, CheckExcelFiles_mockup_data.xlsx
+and a dummy non-Excel file, CheckExcelFiles_dummy_file.docx in the tests
+directory. Tests use virtual import of df_errs_test to construct error
+ code df that would typically be imported from ErrorCodes.xlsx. It would 
+reside in the libs subfolder with error_handling.py and preflight.py files.
 =========================================================================
 """
 
@@ -971,7 +971,7 @@ IsPrint = False
 def check_files(errs, df_errs_test):
     errs.df_errs = df_errs_test
     errs.Locn = 'CheckFilesProcedure'
-    lst_files, lst_shts = ['../tests/test_mockup.xlsx'], [['']]
+    lst_files, lst_shts = ['../tests/CheckExcelFiles_mockup_data.xlsx'], [['']]
     return CheckExcelFiles(lst_files, lst_shts, errs)
 
 def test_CheckExcelFiles_check_files(check_files):
@@ -1016,7 +1016,7 @@ def test_CheckExcelFiles_CheckFilesProcedure3(check_files):
     Test the CheckFilesProcedure method of the CheckExcelFiles class
     (3) non-Excel file
     """
-    check_files.lst_files = ['../tests/dummy_file.docx']
+    check_files.lst_files = ['../tests/CheckExcelFiles_dummy_file.docx']
     check_files.CheckFilesProcedure()
     assert check_files.IsWbErr == True
     assert check_files.errs.Msgs_Accum[0:27] == 'ERROR: Input file not a val'
@@ -1081,7 +1081,7 @@ def test_CheckExcelFiles_ExcelFileOpens2(check_files):
     JDL 1/4/24
     """
     # check non-Excel test file
-    check_files.lst_files = ['../tests/dummy_file.docx']
+    check_files.lst_files = ['../tests/CheckExcelFiles_dummy_file.docx']
     check_files.ExcelFileOpens(idx=0)
 
     assert check_files.IsWbErr == True
