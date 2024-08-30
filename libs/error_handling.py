@@ -1,4 +1,5 @@
 #Version 2/14/24 Add IsLog option and logging functions
+#Version 8/29/24 change arg name to path_err_codes and add docstring
 import pandas as pd
 import os
 import logging
@@ -6,9 +7,31 @@ logger = logging.getLogger(__name__)
 
 #Global code to flag Base error code not found in .df_errs
 iErrNotFound = 10000
+"""
+=========================================================================
+This class performs error handling. It refers to the ErrorCodes.xlsx file
+to look up user-facing messages based on a base error code (.iCodeBase)
+looked up based on .Locn and error-specific .iCodeLocal to construct
+the lookup error code .iCodeReport.  This allows local error codes to be
+simple integers --1, 2, 3 etc. in each function.
 
+When an error is detected in application code, the .ReportError
+method looks up the error message based on .iCodeReport and appends it to
+a message string for reporting to the user. If the condition is non-fatal,
+the .ResetWarning method can reset class parameters to continue
+execution. The approach of message lookup by .Locn (e.g. .iCodeBase) 
+and .iCodeLocal avoids interrelationships of error codes across 
+application functions --making it easy to assign local codes.
+
+Note that the .is_fail method is a convenient way to check for a Boolean
+error condition and set the error parameters in one line of code.  Boolean
+checks should be conducted to evaluate as True for error conditions.
+ .is_fail returns True for an error or False for no error.
+=========================================================================
+"""
 class ErrorHandle:
-    def __init__(self, libs_dir, ErrMsgHeader='', IsHandle=True, IsPrint=True, IsLog=False):
+    def __init__(self, path_err_codes, ErrMsgHeader='', IsHandle=True, \
+                 IsPrint=True, IsLog=False):
 
         self.IsHandle = IsHandle
 
@@ -23,12 +46,13 @@ class ErrorHandle:
         self.IsErr = False # Flag if error occurred
 
         #Import error codes from Excel file
-        self.df_errs = pd.read_excel(libs_dir + 'ErrorCodes.xlsx', sheet_name='Errors_')
+        self.df_errs = pd.read_excel(path_err_codes + 'ErrorCodes.xlsx', \
+                                     sheet_name='Errors_')
 
-        self.IsWarning = False  # Flag for warning (non-fatal error)
-        self.IsPrint = IsPrint  # Flag printing from ReportError
-        self.IsLog = IsLog # Flag logging from ReportError
-        self.Msgs_Accum = ''  # String with accumulated error messages
+        self.IsWarning = False  # Flag warning (non-fatal error)
+        self.IsPrint = IsPrint  # Toggle printing from ReportError
+        self.IsLog = IsLog # Toggle logging from ReportError
+        self.Msgs_Accum = ''  # String with accumulated error/warning messages
         
     """
     ================================================================================
@@ -42,9 +66,6 @@ class ErrorHandle:
         """
         self.GetBaseErrCode()
         self.SetReportErrCode()
-        #xxx
-        #print('\nBase:', self.iCodeBase, self.iCodeLocal, self.iCodeReport)
-
         self.AppendErrMsg()
         self.ReportError()
         if self.IsWarning: self.ResetWarning()

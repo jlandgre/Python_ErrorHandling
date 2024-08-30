@@ -2,6 +2,8 @@
 #Version 8/26/24 - Add additional methods (from client code Version 6/24/24)
 #Version 8/27/24 - Consolidate tbl.df and df checks to CheckDataFrame class
 #                  Add tests of all preflights in test_preflight.py
+#Version 8/29/24 - Set default tbl=None in case using Class to check a df
+#                  without Table instance and its tbl.df attribute
 
 import pandas as pd
 import os
@@ -30,10 +32,11 @@ the preflight.py method name is used to look up the default error code..
 =========================================================================
 """
 class CheckDataFrame:
-    def __init__(self, path_err_codes, tbl, IsCustomCodes=False, IsPrint=True, IsLog=False):
+    def __init__(self, path_err_codes, tbl=None, IsCustomCodes=False, \
+                 IsPrint=True, IsLog=False):
         """
-        Initialize CheckDataFrame with df and errs ErrorHandle instance as attributes.
-        JDL 2/16/24
+        Initialize CheckDataFrame
+        JDL 2/16/24; Modified 8/29/24 to set default tbl=None
         """
         self.tbl = tbl
         self.IsPrint = IsPrint

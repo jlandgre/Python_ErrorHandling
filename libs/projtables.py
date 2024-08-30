@@ -19,13 +19,10 @@ class ProjectTables():
     def __init__(self, files, lst_files):
 
         #Create an example table
-        self.spf_input1 = files.path_data + lst_files[0]
-        self.spf_input2 = files.path_data + lst_files[1]
-        self.tbl1 = Table(self.spf_input1, 'Table1', 'first_sheet', 'idx')
-        self.tbl2 = Table(self.spf_input2, 'Table2', 'first_sheet', 'idx')
+        self.DemoData = Table('', 'DemoTable', '', 'idx')
 
         #Set lists of inputs and outputs
-        self.lstImports = [self.tbl1, self.tbl2]
+        self.lstImports = []
         self.lstOutputs = []
 
         #Initialize Output DataFrames to have the right type
@@ -39,11 +36,9 @@ class ProjectTables():
         """
         Set the required columns for each table
         """
-        self.tbl1.required_cols = ['idx', 'col_1', 'col_2']
-        self.tbl1.numeric_cols = ['idx', 'col_1']
-        self.tbl1.populated_cols = ['idx', 'col_2']
-        self.tbl1.nonblank_cols = ['idx', 'col_1']
-    
+        self.DemoData.required_cols = ['idx', 'col_a', 'col_b']
+        self.DemoData.numeric_cols = ['col_a', 'col_b']
+        
     def SetCustomRangeChecks(self):
         """
         Example check values within numeric range for list of tbl1 columns -- This demonstrates
@@ -52,7 +47,7 @@ class ProjectTables():
         JDL 2/19/24
         """
         #Set attribute with tuple syntax (col_list, (ll, ul))
-        self.tbl1.check_0to50_numeric_range = (['idx','col_1'], (0, 50))
+        #self.tbl1.check_0to50_numeric_range = (['idx','col_1'], (0, 50))
 
     def SetCustomSelectionFilters(self):
         """
@@ -61,7 +56,7 @@ class ProjectTables():
         JDL 2/19/24
         """
         #Example returns a filter True for two rows
-        self.tbl1.fil_selection = (self.tbl1.df['col_1'] > 10) & (self.tbl1.df['col_1'] < 40)
+        #self.tbl1.fil_selection = (self.tbl1.df['col_1'] > 10) & (self.tbl1.df['col_1'] < 40)
 
     def ImportInputs(self):
         """
